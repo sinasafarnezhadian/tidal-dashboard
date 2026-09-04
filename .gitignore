@@ -1,0 +1,4 @@
+server/tidal_session.json
+server/__pycache__/
+server/venv/
+*.pyc

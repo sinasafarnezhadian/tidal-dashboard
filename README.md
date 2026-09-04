@@ -1,20 +1,71 @@
 # tidal-dashboard
 
-Ein einfaches, statisches Musik-Dashboard fürs iPad. Vorausgewählte Tidal-Playlists
-und Lieder werden als große, antippbare Kacheln angezeigt. Beim Antippen öffnet
-sich der offizielle Tidal-Embed-Player mit eigenem Play/Pause-Button.
+Ein einfaches Musik-Dashboard fürs iPad. Vorausgewählte Tidal-Playlists,
+Alben und Lieder werden als große, antippbare Kacheln angezeigt. Play/Pause
+läuft direkt im Dashboard über einen eigenen Player.
 
-Reines HTML/CSS/JS, kein Server-Backend, keine Zugangsdaten im Code. Die
-Wiedergabe läuft über Tidals offizielles `embed.tidal.com`-Widget – dafür
-muss man sich im Widget einmalig mit einem Tidal-Konto anmelden (kostenloses
-oder bezahltes Konto).
+## ⚠️ Wichtiger Hinweis
 
-**Wichtig:** Tidals Embed-Player nutzt für Login/Lizenzierung die
-Web-Crypto-API, die Browser nur in einem sicheren Kontext (HTTPS)
-bereitstellen. Läuft die Seite über einfaches HTTP (z. B. lokal im
-Heimnetz ohne eigenes Zertifikat), schlägt die Wiedergabe fehl. Deshalb
-läuft dieses Dashboard über **GitHub Pages**, das automatisch HTTPS
-bereitstellt.
+Tidal bietet **keine offizielle API für eingebettete Vollwiedergabe** durch
+Drittanbieter-Seiten (das offizielle Embed-Widget spielt nur 30-Sekunden-
+Vorschauen). Damit trotzdem volle Songs direkt im Dashboard laufen, nutzt
+dieses Projekt die **inoffizielle Tidal-API** über die Bibliothek
+[`tidalapi`](https://github.com/tamland/python-tidal).
+
+Das bedeutet konkret:
+- Es verstößt gegen Tidals Nutzungsbedingungen – im schlimmsten Fall könnte
+  der Tidal-Account gesperrt werden.
+- Die Bibliothek kann jederzeit ohne Vorwarnung aufhören zu funktionieren,
+  wenn Tidal seine private API ändert.
+- Der Login-Token wird lokal auf dem Server gespeichert (`server/tidal_session.json`,
+  per `.gitignore` vom Git-Repo ausgeschlossen) – niemals committen oder
+  öffentlich hosten.
+
+Deshalb läuft der Server **nur lokal im Heimnetz**, nicht öffentlich im
+Internet (kein Vercel/GitHub Pages mehr nötig).
+
+## Architektur
+
+- `index.html` / `style.css` / `app.js` – Frontend mit den Kacheln und dem
+  eigenen Play/Pause-Player (Beige/Hellgrün/Erdtöne).
+- `server/app.py` – kleiner Python-Server (Flask), der sich einmalig bei
+  Tidal anmeldet, Playlist/Album/Track-Infos abruft und Stream-URLs an das
+  Frontend liefert. Liefert auch gleich die statischen Dateien aus.
+- `config.json` – Liste der Playlists/Alben/Lieder, die als Kacheln
+  angezeigt werden.
+
+## Einrichtung
+
+Auf einem immer laufenden Rechner im Heimnetz (Raspberry Pi, NAS, alter PC),
+mit Python 3 installiert:
+
+```bash
+cd tidal-dashboard
+python3 -m venv venv
+source venv/bin/activate
+pip install -r server/requirements.txt
+python3 server/app.py
+```
+
+Beim **ersten Start** zeigt das Terminal einen Link und einen Code an, z. B.:
+
+```
+Visit https://link.tidal.com/XXXXX to log in, the code will expire in 300 seconds
+```
+
+Diesen Link auf einem beliebigen Gerät (Handy reicht) öffnen und mit dem
+Tidal-Konto bestätigen (das Konto braucht ein aktives Abo). Danach läuft der
+Server weiter und merkt sich den Login in `server/tidal_session.json` – bei
+späteren Starts ist kein erneuter Login nötig.
+
+Die Seite ist danach im Heimnetz erreichbar unter:
+
+```
+http://<lokale-IP-des-Rechners>:8080
+```
+
+Damit der Server automatisch nach einem Neustart wieder läuft, kann man ihn
+z. B. als systemd-Service einrichten (optional).
 
 ## Playlists/Lieder pflegen
 
@@ -24,40 +75,28 @@ Alles wird in `config.json` gepflegt:
 {
   "items": [
     { "type": "playlist", "title": "Gute-Laune-Playlist", "tidalId": "PLAYLIST-UUID", "emoji": "🎧" },
+    { "type": "album", "title": "Albumname", "tidalId": "ALBUM-ID", "emoji": "💿" },
     { "type": "track", "title": "Lieblingslied", "artist": "Interpret", "tidalId": "TRACK-ID", "emoji": "🎵" }
   ]
 }
 ```
 
-So findet man die IDs in der Tidal-App/Website:
+So findet man die IDs in der Tidal-App:
 - **Playlist**: Playlist öffnen → Teilen → Link kopieren, z. B.
-  `https://tidal.com/playlist/1234abcd-...` → die UUID nach `/playlist/` ist die `tidalId`.
+  `https://tidal.com/playlist/1234abcd-...` → die UUID ist die `tidalId`.
+- **Album**: Album öffnen → Teilen → Link kopieren, z. B.
+  `https://tidal.com/album/59978731` → die Zahl ist die `tidalId`.
 - **Track**: Lied öffnen → Teilen → Link kopieren, z. B.
-  `https://tidal.com/track/59978731` → die Zahl am Ende ist die `tidalId`.
+  `https://tidal.com/track/59978731` → die Zahl ist die `tidalId`.
 
-Nach dem Ändern von `config.json` (siehe unten committen/pushen) lädt die
-Seite die neuen Inhalte automatisch beim nächsten Aufruf – kein separates
-Deployment nötig.
+Anders als beim früheren Embed-Widget müssen Playlists **nicht** öffentlich
+gestellt werden, da der Server mit dem eigenen Tidal-Login zugreift.
 
-## Hosting über GitHub Pages einrichten (einmalig)
-
-GitHub Pages kann Dateien nicht automatisch selbst aktivieren – das ist ein
-einmaliger manueller Klick in den Repo-Einstellungen:
-
-1. Im Repo auf **Settings** → **Pages** gehen.
-2. Unter **Build and deployment** → **Source**: „Deploy from a branch“ wählen.
-3. **Branch**: `main`, Ordner `/ (root)` auswählen, **Save**.
-4. Nach ein bis zwei Minuten ist die Seite erreichbar unter:
-   `https://sinasafarnezhadian.github.io/tidal-dashboard/`
-
-Jeder weitere Push auf `main` (z. B. nach einer Änderung an `config.json`)
-aktualisiert die Seite automatisch.
+Nach dem Ändern von `config.json` reicht ein Neuladen der Seite im
+iPad-Browser – kein Neustart des Servers nötig.
 
 ## Auf dem iPad einrichten
 
-1. Im Safari-Browser `https://sinasafarnezhadian.github.io/tidal-dashboard/`
-   öffnen.
-2. Teilen-Button → „Zum Home-Bildschirm“ – dann startet das Dashboard wie
+1. Im Safari-Browser die lokale Adresse (siehe oben) öffnen.
+2. Teilen-Button → „Zum Home-Bildschirm" – dann startet das Dashboard wie
    eine App, ganzseitig, ohne Browserleiste.
-3. Beim ersten Antippen einer Kachel im Tidal-Embed-Player einmalig mit dem
-   Tidal-Konto anmelden.

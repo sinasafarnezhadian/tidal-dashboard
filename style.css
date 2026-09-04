@@ -129,9 +129,59 @@ header h1 {
   cursor: pointer;
 }
 
-#player-frame-wrap iframe {
-  width: 100%;
-  border: none;
-  border-radius: 12px;
-  min-height: 160px;
+.now-playing {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.np-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--earth-dark);
+}
+
+.np-artist {
+  font-size: 1rem;
+  color: var(--earth-brown);
+  margin-top: 4px;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.ctrl-btn {
+  background: var(--card-bg-hover);
+  border: 2px solid var(--accent-green);
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+  font-size: 1.3rem;
+  color: var(--earth-dark);
+  cursor: pointer;
+}
+
+.ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.ctrl-btn.play-btn {
+  width: 76px;
+  height: 76px;
+  font-size: 1.8rem;
+  background: var(--accent-green);
+  color: white;
+  border-color: var(--accent-green-dark);
+}
+
+.player-status {
+  margin-top: 16px;
+  text-align: center;
+  color: var(--earth-brown);
+  font-size: 0.9rem;
+  min-height: 1.2em;
 }

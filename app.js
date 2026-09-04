@@ -4,34 +4,117 @@ const playerTitle = document.getElementById("player-title");
 const playerFrameWrap = document.getElementById("player-frame-wrap");
 const closeBtn = document.getElementById("close-player");
 
-const EMBED_HEIGHT = {
-  track: 180,
-  playlist: 420,
-  album: 420
-};
+const audio = new Audio();
+let queue = [];
+let queueIndex = 0;
+let streamUrlCache = {};
 
-function embedUrl(item) {
-  const type = item.type === "playlist" ? "playlists"
-    : item.type === "album" ? "albums"
-    : "tracks";
-  return `https://embed.tidal.com/${type}/${item.tidalId}?layout=gridify`;
+function renderPlayerControls() {
+  const track = queue[queueIndex];
+  if (!track) return;
+
+  playerFrameWrap.innerHTML = `
+    <div class="now-playing">
+      <div class="np-title">${track.title}</div>
+      <div class="np-artist">${track.artist || ""}</div>
+    </div>
+    <div class="player-controls">
+      <button id="prev-btn" class="ctrl-btn" ${queueIndex === 0 ? "disabled" : ""} aria-label="Zurück">⏮</button>
+      <button id="play-pause-btn" class="ctrl-btn play-btn" aria-label="Play/Pause">${audio.paused ? "▶" : "⏸"}</button>
+      <button id="next-btn" class="ctrl-btn" ${queueIndex === queue.length - 1 ? "disabled" : ""} aria-label="Weiter">⏭</button>
+    </div>
+    <div id="player-status" class="player-status"></div>
+  `;
+
+  document.getElementById("play-pause-btn").addEventListener("click", togglePlayPause);
+  document.getElementById("prev-btn").addEventListener("click", () => changeTrack(-1));
+  document.getElementById("next-btn").addEventListener("click", () => changeTrack(1));
 }
 
-function openPlayer(item) {
+function setStatus(text) {
+  const el = document.getElementById("player-status");
+  if (el) el.textContent = text;
+}
+
+async function getStreamUrl(trackId) {
+  if (streamUrlCache[trackId]) return streamUrlCache[trackId];
+  const res = await fetch(`/api/stream/${trackId}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Stream konnte nicht geladen werden");
+  streamUrlCache[trackId] = data.url;
+  return data.url;
+}
+
+async function playCurrentTrack() {
+  const track = queue[queueIndex];
+  if (!track) return;
+  setStatus("Lädt …");
+  try {
+    const url = await getStreamUrl(track.id);
+    audio.src = url;
+    await audio.play();
+    setStatus("");
+  } catch (err) {
+    setStatus(String(err.message || err));
+  }
+  renderPlayerControls();
+}
+
+function togglePlayPause() {
+  if (audio.paused) {
+    if (!audio.src) {
+      playCurrentTrack();
+    } else {
+      audio.play();
+      renderPlayerControls();
+    }
+  } else {
+    audio.pause();
+    renderPlayerControls();
+  }
+}
+
+function changeTrack(direction) {
+  const newIndex = queueIndex + direction;
+  if (newIndex < 0 || newIndex >= queue.length) return;
+  queueIndex = newIndex;
+  playCurrentTrack();
+}
+
+audio.addEventListener("ended", () => {
+  if (queueIndex < queue.length - 1) {
+    changeTrack(1);
+  } else {
+    renderPlayerControls();
+  }
+});
+
+async function openPlayer(item) {
   playerTitle.textContent = item.title;
-  const height = EMBED_HEIGHT[item.type] || 200;
-  playerFrameWrap.innerHTML = "";
-  const iframe = document.createElement("iframe");
-  iframe.src = embedUrl(item);
-  iframe.height = height;
-  iframe.allow = "encrypted-media; autoplay";
-  playerFrameWrap.appendChild(iframe);
   overlay.hidden = false;
+  playerFrameWrap.innerHTML = "<p>Lädt …</p>";
+  audio.pause();
+  audio.removeAttribute("src");
+  streamUrlCache = {};
+
+  try {
+    const res = await fetch(`/api/queue/${item.type}/${item.tidalId}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Konnte Titel nicht laden");
+    queue = data;
+    queueIndex = 0;
+    renderPlayerControls();
+  } catch (err) {
+    playerFrameWrap.innerHTML = `<p>${err.message || err}</p>`;
+  }
 }
 
 function closePlayer() {
   overlay.hidden = true;
-  playerFrameWrap.innerHTML = "";
+  audio.pause();
+  audio.removeAttribute("src");
+  queue = [];
+  queueIndex = 0;
 }
 
 closeBtn.addEventListener("click", closePlayer);
@@ -43,7 +126,7 @@ function renderCard(item) {
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML = `
-    <div class="type-tag">${item.type === "playlist" ? "Playlist" : "Lied"}</div>
+    <div class="type-tag">${item.type === "playlist" ? "Playlist" : item.type === "album" ? "Album" : "Lied"}</div>
     <div class="emoji">${item.emoji || "🎵"}</div>
     <div class="title">${item.title}</div>
     ${item.artist ? `<div class="artist">${item.artist}</div>` : ""}
