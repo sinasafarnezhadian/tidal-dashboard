@@ -2,16 +2,15 @@
   "items": [
     {
       "type": "playlist",
-      "title": "Lieblingsplaylist",
-      "tidalId": "REPLACE-WITH-PLAYLIST-UUID",
+      "title": "Playlist 1",
+      "tidalId": "dd4dab5e-cabc-4c75-b198-1bcd234add33",
       "emoji": "🎧"
     },
     {
-      "type": "track",
-      "title": "Lieblingslied",
-      "artist": "Interpret",
-      "tidalId": "REPLACE-WITH-TRACK-ID",
-      "emoji": "🎵"
+      "type": "playlist",
+      "title": "Playlist 2",
+      "tidalId": "f949336d-2c42-41d4-9c4b-d076be2e6c8a",
+      "emoji": "🎶"
     }
   ]
 }
