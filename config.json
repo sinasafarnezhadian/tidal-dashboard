@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "type": "playlist",
+      "title": "Lieblingsplaylist",
+      "tidalId": "REPLACE-WITH-PLAYLIST-UUID",
+      "emoji": "🎧"
+    },
+    {
+      "type": "track",
+      "title": "Lieblingslied",
+      "artist": "Interpret",
+      "tidalId": "REPLACE-WITH-TRACK-ID",
+      "emoji": "🎵"
+    }
+  ]
+}

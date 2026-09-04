@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Musik-Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Musik">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🎶 Musik-Dashboard</h1>
+  </header>
+
+  <main id="grid" class="grid"></main>
+
+  <div id="player-overlay" class="overlay" hidden>
+    <div class="player-card">
+      <button id="close-player" class="close-btn" aria-label="Schließen">✕</button>
+      <h2 id="player-title"></h2>
+      <div id="player-frame-wrap"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
