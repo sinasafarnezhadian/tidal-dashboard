@@ -1,0 +1,137 @@
+:root {
+  --bg: #f4ecdd;
+  --card-bg: #fffaf1;
+  --card-bg-hover: #fbf2e2;
+  --accent-green: #a9c9a0;
+  --accent-green-dark: #7fa876;
+  --earth-brown: #a97c50;
+  --earth-dark: #6b4f3b;
+  --text: #4a3f35;
+  --shadow: 0 4px 14px rgba(107, 79, 59, 0.15);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+header {
+  padding: 24px 20px 8px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: var(--earth-dark);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 2px solid var(--accent-green);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  min-height: 160px;
+  justify-content: center;
+  text-align: center;
+}
+
+.card:active {
+  transform: scale(0.96);
+  background: var(--card-bg-hover);
+}
+
+.card .emoji {
+  font-size: 3rem;
+}
+
+.card .title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--earth-dark);
+}
+
+.card .artist {
+  font-size: 0.95rem;
+  color: var(--earth-brown);
+}
+
+.card .type-tag {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-green-dark);
+  font-weight: 700;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(74, 63, 53, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10;
+}
+
+.overlay[hidden] { display: none; }
+
+.player-card {
+  background: var(--card-bg);
+  border-radius: 24px;
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.player-card h2 {
+  margin: 0 0 12px;
+  color: var(--earth-dark);
+  padding-right: 30px;
+}
+
+.close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: var(--accent-green);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
+  color: white;
+  cursor: pointer;
+}
+
+#player-frame-wrap iframe {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  min-height: 160px;
+}
