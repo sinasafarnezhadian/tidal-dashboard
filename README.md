@@ -9,6 +9,13 @@ Wiedergabe läuft über Tidals offizielles `embed.tidal.com`-Widget – dafür
 muss man sich im Widget einmalig mit einem Tidal-Konto anmelden (kostenloses
 oder bezahltes Konto).
 
+**Wichtig:** Tidals Embed-Player nutzt für Login/Lizenzierung die
+Web-Crypto-API, die Browser nur in einem sicheren Kontext (HTTPS)
+bereitstellen. Läuft die Seite über einfaches HTTP (z. B. lokal im
+Heimnetz ohne eigenes Zertifikat), schlägt die Wiedergabe fehl. Deshalb
+läuft dieses Dashboard über **GitHub Pages**, das automatisch HTTPS
+bereitstellt.
+
 ## Playlists/Lieder pflegen
 
 Alles wird in `config.json` gepflegt:
@@ -28,34 +35,28 @@ So findet man die IDs in der Tidal-App/Website:
 - **Track**: Lied öffnen → Teilen → Link kopieren, z. B.
   `https://tidal.com/track/59978731` → die Zahl am Ende ist die `tidalId`.
 
-Nach dem Speichern von `config.json` reicht ein Neuladen der Seite im
-iPad-Browser – kein Deploy, kein Neustart nötig.
+Nach dem Ändern von `config.json` (siehe unten committen/pushen) lädt die
+Seite die neuen Inhalte automatisch beim nächsten Aufruf – kein separates
+Deployment nötig.
 
-## Lokal im Heimnetz starten
+## Hosting über GitHub Pages einrichten (einmalig)
 
-Auf einem immer laufenden Rechner im Heimnetz (z. B. Raspberry Pi, NAS, alter PC):
+GitHub Pages kann Dateien nicht automatisch selbst aktivieren – das ist ein
+einmaliger manueller Klick in den Repo-Einstellungen:
 
-```bash
-cd tidal-dashboard
-python3 -m http.server 8080
-```
+1. Im Repo auf **Settings** → **Pages** gehen.
+2. Unter **Build and deployment** → **Source**: „Deploy from a branch“ wählen.
+3. **Branch**: `main`, Ordner `/ (root)` auswählen, **Save**.
+4. Nach ein bis zwei Minuten ist die Seite erreichbar unter:
+   `https://sinasafarnezhadian.github.io/tidal-dashboard/`
 
-Die Seite ist dann für alle Geräte im selben WLAN erreichbar unter:
-
-```
-http://<lokale-IP-des-Rechners>:8080
-```
-
-Die lokale IP findet man z. B. mit `hostname -I` (Linux) oder in den
-WLAN-Einstellungen des Rechners.
-
-Damit der Server automatisch nach einem Neustart wieder läuft, kann man ihn
-z. B. als systemd-Service oder Cronjob (`@reboot`) einrichten – optional,
-für den Start reicht der obige Befehl.
+Jeder weitere Push auf `main` (z. B. nach einer Änderung an `config.json`)
+aktualisiert die Seite automatisch.
 
 ## Auf dem iPad einrichten
 
-1. Im Safari-Browser die lokale Adresse (siehe oben) öffnen.
+1. Im Safari-Browser `https://sinasafarnezhadian.github.io/tidal-dashboard/`
+   öffnen.
 2. Teilen-Button → „Zum Home-Bildschirm“ – dann startet das Dashboard wie
    eine App, ganzseitig, ohne Browserleiste.
 3. Beim ersten Antippen einer Kachel im Tidal-Embed-Player einmalig mit dem
