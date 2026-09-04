@@ -9,8 +9,14 @@
     {
       "type": "playlist",
       "title": "Playlist 2",
-      "tidalId": "29e99397-d078-47b1-9436-43b7833f9c3b",
+      "tidalId": "f949336d-2c42-41d4-9c4b-d076be2e6c8a",
       "emoji": "🎶"
+    },
+    {
+      "type": "playlist",
+      "title": "Playlist 3",
+      "tidalId": "29e99397-d078-47b1-9436-43b7833f9c3b",
+      "emoji": "🎼"
     }
   ]
 }
