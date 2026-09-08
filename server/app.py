@@ -15,6 +15,7 @@ SESSION_FILE = DATA_DIR / "tidal_session.json"
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
 session = tidalapi.Session()
+session.audio_quality = tidalapi.Quality.low_96k
 
 
 def save_session():
