@@ -55,8 +55,23 @@ def build_api(tokens) -> TidalAPI:
     return TidalAPI(client, str(tokens["user_id"]), tokens["country_code"])
 
 
-if SESSION_FILE.exists():
-    api = build_api(json.loads(SESSION_FILE.read_text()))
+def load_saved_api():
+    """Restore a stored login, ignoring an unusable session file rather than
+    crashing on startup (e.g. one written by the earlier tidalapi backend)."""
+    if not SESSION_FILE.exists():
+        return None
+    try:
+        tokens = json.loads(SESSION_FILE.read_text())
+        if not all(k in tokens for k in ("access_token", "refresh_token", "user_id", "country_code")):
+            return None
+        return build_api(tokens)
+    except Exception as exc:  # noqa: BLE001
+        print(f"Gespeicherte Sitzung unbrauchbar ({exc}), bitte neu anmelden.")
+        return None
+
+
+api = load_saved_api()
+if api is not None:
     login_state = {"status": "logged_in"}
 else:
     print("Nicht bei Tidal eingeloggt. Bitte http://<server>:8080/login/start öffnen.")
