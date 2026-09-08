@@ -191,6 +191,40 @@ def queue(item_type, item_id):
     return jsonify([track_info(t) for t in tracks])
 
 
+@app.route("/api/art/<item_type>/<item_id>")
+def art(item_type, item_id):
+    """Cover image for a tile. Proxied rather than linked so the browser only
+    ever talks to this server."""
+    if api is None:
+        abort(404)
+    try:
+        if item_type == "playlist":
+            playlist = api.get_playlist(item_id)
+            uid = playlist.squareImage or playlist.image
+        elif item_type == "album":
+            uid = api.get_album(item_id).cover
+        else:
+            abort(404)
+        if not uid:
+            abort(404)
+
+        # Tidal stores the uuid as a path: 1234-5678-... -> 1234/5678/...
+        upstream = requests.get(
+            f"https://resources.tidal.com/images/{uid.replace('-', '/')}/640x640.jpg",
+            timeout=15,
+        )
+        if not upstream.ok:
+            abort(404)
+    except Exception:  # noqa: BLE001 - the tile falls back to its emoji
+        abort(404)
+
+    return Response(
+        upstream.content,
+        mimetype=upstream.headers.get("Content-Type", "image/jpeg"),
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 def playback_urls(track_id, quality, retry=True):
     """Ask Tidal where the audio lives. Only "bts" manifests are accepted:
     they point at one finished file, while DASH would hand us segments that a

@@ -155,8 +155,24 @@ html, body {
   margin-top: 10px;
 }
 
+.cover-slot {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .card .emoji {
   font-size: 3rem;
+}
+
+.cover {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
 }
 
 .card .title {

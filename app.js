@@ -182,8 +182,19 @@ function renderTile(item) {
   card.className = "card";
   card.innerHTML =
     '<div class="type-tag">' + (item.type === "playlist" ? "Playlist" : "Album") + "</div>" +
-    '<div class="emoji">' + (item.emoji || "🎵") + "</div>" +
+    '<div class="cover-slot"><span class="emoji">' + (item.emoji || "🎵") + "</span></div>" +
     '<div class="title">' + item.title + "</div>";
+
+  // Show Tidal's artwork, keeping the emoji as the fallback if it fails.
+  const cover = new Image();
+  cover.className = "cover";
+  cover.alt = "";
+  cover.addEventListener("load", function () {
+    const slot = card.querySelector(".cover-slot");
+    slot.innerHTML = "";
+    slot.appendChild(cover);
+  });
+  cover.src = "/api/art/" + item.type + "/" + item.tidalId;
   card.addEventListener("click", function () {
     unlockAudio();
     openItem(item);
