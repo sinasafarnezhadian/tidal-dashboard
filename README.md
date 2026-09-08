@@ -145,3 +145,6 @@ iPad-Browser – kein Neustart des Servers nötig.
 1. Im Safari-Browser die lokale Adresse (siehe oben) öffnen.
 2. Teilen-Button → „Zum Home-Bildschirm" – dann startet das Dashboard wie
    eine App, ganzseitig, ohne Browserleiste.
+
+---
+Letzte Änderung: 2026-09-08 19:14 UTC
