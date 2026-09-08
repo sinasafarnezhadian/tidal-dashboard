@@ -121,7 +121,6 @@ function playCurrentTrack() {
   timeCurrent.textContent = "0:00";
   paintProgress();
   renderTrackInfo();
-  setStatus("Lädt …");
   audio
     .play()
     .then(() => {
@@ -200,9 +199,9 @@ audio.addEventListener("error", () => {
 
 async function openItem(item) {
   player.hidden = false;
-  npTitle.textContent = item.title;
+  npTitle.textContent = "…";
   npArtist.textContent = "";
-  setStatus("Lädt …");
+  setStatus("");
 
   try {
     const res = await fetch(`/api/queue/${item.type}/${item.tidalId}`);
