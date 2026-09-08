@@ -69,6 +69,88 @@ html, body {
   background: var(--card-bg-hover);
 }
 
+.section-divider {
+  border: none;
+  border-top: 2px solid var(--accent-green);
+  max-width: 1100px;
+  margin: 4px auto 0;
+}
+
+.section-divider[hidden] { display: none; }
+
+.track-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+@media (max-width: 620px) {
+  .track-list { grid-template-columns: 1fr; }
+}
+
+.track-row {
+  display: flex;
+  align-items: center;
+  background: var(--card-bg);
+  border: 2px solid var(--accent-green);
+  border-radius: 16px;
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.track-row:active {
+  transform: scale(0.98);
+  background: var(--card-bg-hover);
+}
+
+/* Abstände über margin statt flex-gap (siehe Safari-12-Hinweis in der README) */
+.track-row > * + * {
+  margin-left: 12px;
+}
+
+.track-play {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  color: white;
+  font-size: 1.1rem;
+  line-height: 44px;
+  text-align: center;
+}
+
+.track-emoji {
+  flex: none;
+  font-size: 1.6rem;
+}
+
+.track-text {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.track-title {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--earth-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-artist {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--earth-brown);
+}
+
 .card > * + * {
   margin-top: 10px;
 }

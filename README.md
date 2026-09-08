@@ -150,7 +150,10 @@ gestellt werden, da der Server mit dem eigenen Tidal-Login zugreift.
 Nach dem Ändern von `config.json` reicht ein Neuladen der Seite im
 iPad-Browser – kein Neustart des Servers nötig.
 
-Ein Tipp auf eine Kachel startet die Wiedergabe sofort; der Player bleibt beim
+Das Board ist zweigeteilt: Playlists und Alben stehen oben als Kacheln,
+darunter – durch eine Linie getrennt – die einzelnen Lieder als zweispaltige
+Liste mit Play-Button links. Ein Tipp auf eine Kachel oder Zeile startet die
+Wiedergabe sofort; der Player bleibt beim
 Scrollen oben stehen. Im Fortschrittsbalken lässt sich im Titel springen, und
 am Ende eines Titels läuft die Playlist automatisch weiter.
 
@@ -169,4 +172,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 22:50 UTC
+Letzte Änderung: 2026-09-08 23:05 UTC

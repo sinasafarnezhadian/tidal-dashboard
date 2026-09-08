@@ -1,4 +1,6 @@
-const grid = document.getElementById("grid");
+const collections = document.getElementById("collections");
+const trackList = document.getElementById("tracks");
+const sectionDivider = document.getElementById("section-divider");
 const audio = document.getElementById("audio");
 
 const player = document.getElementById("player");
@@ -175,27 +177,45 @@ async function openItem(item) {
   }
 }
 
-function renderCard(item) {
+function renderTile(item) {
   const card = document.createElement("div");
   card.className = "card";
-  card.innerHTML = `
-    <div class="type-tag">${item.type === "playlist" ? "Playlist" : item.type === "album" ? "Album" : "Lied"}</div>
-    <div class="emoji">${item.emoji || "🎵"}</div>
-    <div class="title">${item.title}</div>
-    ${item.artist ? `<div class="artist">${item.artist}</div>` : ""}
-  `;
-  card.addEventListener("click", () => {
+  card.innerHTML =
+    '<div class="type-tag">' + (item.type === "playlist" ? "Playlist" : "Album") + "</div>" +
+    '<div class="emoji">' + (item.emoji || "🎵") + "</div>" +
+    '<div class="title">' + item.title + "</div>";
+  card.addEventListener("click", function () {
     unlockAudio();
     openItem(item);
   });
-  grid.appendChild(card);
+  collections.appendChild(card);
+}
+
+function renderTrackRow(item) {
+  const row = document.createElement("div");
+  row.className = "track-row";
+  row.innerHTML =
+    '<span class="track-play" aria-hidden="true">▶</span>' +
+    '<span class="track-emoji">' + (item.emoji || "🎵") + "</span>" +
+    '<span class="track-text"><span class="track-title">' + item.title + "</span>" +
+    (item.artist ? '<span class="track-artist">' + item.artist + "</span>" : "") +
+    "</span>";
+  row.addEventListener("click", function () {
+    unlockAudio();
+    openItem(item);
+  });
+  trackList.appendChild(row);
 }
 
 fetch("config.json")
   .then((res) => res.json())
   .then((data) => {
-    (data.items || []).forEach(renderCard);
+    const items = data.items || [];
+    items.filter((i) => i.type !== "track").forEach(renderTile);
+    const tracks = items.filter((i) => i.type === "track");
+    tracks.forEach(renderTrackRow);
+    sectionDivider.hidden = !tracks.length || tracks.length === items.length;
   })
   .catch((err) => {
-    grid.innerHTML = `<p>Konnte config.json nicht laden: ${err}</p>`;
+    collections.innerHTML = `<p>Konnte config.json nicht laden: ${err}</p>`;
   });
