@@ -147,6 +147,13 @@ So findet man die IDs in der Tidal-App:
 Anders als beim früheren Embed-Widget müssen Playlists **nicht** öffentlich
 gestellt werden, da der Server mit dem eigenen Tidal-Login zugreift.
 
+**Jugendschutz:** Aus Playlists und Alben werden Titel übersprungen, die Tidal
+als `explicit` markiert (ebenso nicht streambare und Dolby-Atmos-Titel). Ein
+Lied, das in der `config.json` bewusst einzeln eingetragen ist, wird dagegen
+gespielt – das ist eine ausdrückliche Entscheidung der Eltern. Wer den Filter
+abschalten will, entfernt die `explicit`-Prüfung in `is_playable()`
+(`server/app.py`).
+
 Nach dem Ändern von `config.json` reicht ein Neuladen der Seite im
 iPad-Browser – kein Neustart des Servers nötig.
 
@@ -182,4 +189,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 00:30 UTC
+Letzte Änderung: 2026-09-09 00:45 UTC

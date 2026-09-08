@@ -156,8 +156,11 @@ def track_info(track):
 def is_playable(track):
     """Skip what the browser could not play anyway: tracks the account may not
     stream (tiddl checks the same flag before downloading) and Dolby Atmos,
-    which is delivered as eac3/ac4."""
+    which is delivered as eac3/ac4. Tracks Tidal marks as explicit are left
+    out too - this dashboard is for a child."""
     if not getattr(track, "allowStreaming", True):
+        return False
+    if getattr(track, "explicit", False):
         return False
     return "DOLBY_ATMOS" not in (getattr(track, "audioModes", None) or [])
 
