@@ -141,7 +141,7 @@ Alles wird in `config.json` gepflegt:
 Lieder gibt es dort nicht mehr – die stehen in der `favorites`-Playlist.
 
 `favorites` ist die UUID einer Playlist, deren Titel direkt unter den Kacheln
-als eigene Liste mit Cover erscheinen – gedacht für die Lieblingslieder des
+als eigene Liste mit Cover erscheinen und die das Herz im Player befüllt – gedacht für die Lieblingslieder des
 Kindes. Ein Tipp darauf spielt ab dieser Stelle die ganze Playlist weiter. Fehlt der
 Eintrag, entfällt der Bereich.
 
@@ -190,6 +190,13 @@ verdrängt; über den Pfeil an ihrer Unterkante lässt sie sich ganz einklappen
 und wieder auf die Standardgröße bringen. Im Fortschrittsbalken lässt sich im Titel springen, und
 am Ende eines Titels läuft die Playlist automatisch weiter.
 
+Das Herz rechts im Player trägt den laufenden Titel in die
+`favorites`-Playlist ein. Tidal verlangt für Änderungen an einer Playlist
+deren aktuellen ETag, der Server liest sie also zuerst und schickt den Tag als
+`If-None-Match` zurück; `onDupes=SKIP` überlässt es Tidal, einen schon
+vorhandenen Titel abzulehnen – die Oberfläche meldet dann „Ist schon in
+Younes-Favoriten". Ein Entfernen gibt es bewusst nicht.
+
 ### Ältere iPads
 
 Das Frontend läuft bewusst auch auf altem Safari (iOS 12). Deshalb: kein
@@ -205,4 +212,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 02:35 UTC
+Letzte Änderung: 2026-09-09 03:00 UTC

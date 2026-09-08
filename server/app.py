@@ -242,6 +242,53 @@ def discover():
     return jsonify(found[:6])
 
 
+@app.route("/api/favorites/add/<track_id>", methods=["POST"])
+def favorites_add(track_id):
+    """Put a track into the configured favourites playlist.
+
+    Tidal wants the playlist's current ETag for any change to it, so the
+    playlist is read first and the tag sent back as If-None-Match. onDupes=SKIP
+    leaves it to Tidal to refuse a track that is already in there.
+    """
+    if api is None:
+        return jsonify({"error": "Nicht bei Tidal eingeloggt."}), 401
+    if not track_id.isdigit():
+        abort(400)
+
+    playlist_id = json.loads((STATIC_DIR / "config.json").read_text()).get("favorites")
+    if not playlist_id:
+        return jsonify({"error": "Keine favorites-Playlist in der config.json."}), 400
+
+    url = f"https://api.tidal.com/v1/playlists/{playlist_id}"
+    auth = {"Authorization": f"Bearer {tokens['access_token']}", "Accept": "application/json"}
+    try:
+        current = requests.get(url, params={"countryCode": tokens["country_code"]},
+                               headers=auth, timeout=15)
+        if current.status_code == 401:
+            auth["Authorization"] = f"Bearer {refresh_access_token()}"
+            current = requests.get(url, params={"countryCode": tokens["country_code"]},
+                                   headers=auth, timeout=15)
+        current.raise_for_status()
+
+        resp = requests.post(
+            url + "/items",
+            params={"countryCode": tokens["country_code"], "limit": 100},
+            data={
+                "trackIds": track_id,
+                "toIndex": current.json().get("numberOfTracks", 0),
+                "onArtifactNotFound": "SKIP",
+                "onDupes": "SKIP",
+            },
+            headers={**auth, "If-None-Match": current.headers.get("etag", "")},
+            timeout=15,
+        )
+        resp.raise_for_status()
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"error": str(exc)}), 502
+
+    return jsonify({"added": bool(resp.json().get("addedItemIds"))})
+
+
 @app.route("/api/info/<item_type>/<item_id>")
 def info(item_type, item_id):
     """Name as it is in Tidal, so tiles do not depend on the title in

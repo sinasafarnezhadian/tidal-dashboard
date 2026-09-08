@@ -338,6 +338,14 @@ html, body {
   border-color: var(--accent-green-dark);
 }
 
+.heart-btn {
+  border-color: var(--accent-green);
+  color: #b4574f;
+  font-size: 1.15rem;
+}
+
+.heart-btn:disabled { opacity: 0.5; }
+
 .time {
   flex: none;
   font-size: 0.8rem;

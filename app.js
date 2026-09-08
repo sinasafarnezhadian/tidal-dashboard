@@ -15,6 +15,7 @@ const timeTotal = document.getElementById("time-total");
 const statusLine = document.getElementById("player-status");
 const queueList = document.getElementById("queue-list");
 const queueToggle = document.getElementById("queue-toggle");
+const favBtn = document.getElementById("fav-btn");
 const favoritesGrid = document.getElementById("favorites");
 const favoritesDivider = document.getElementById("favorites-divider");
 
@@ -172,6 +173,22 @@ function togglePlayPause() {
   }
 }
 
+favBtn.addEventListener("click", function () {
+  const track = queue[queueIndex];
+  if (!track) return;
+  favBtn.disabled = true;
+  fetch("/api/favorites/add/" + track.id, { method: "POST" })
+    .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
+    .then(function (r) {
+      if (!r.ok) throw new Error(r.d.error || "Konnte nicht hinzufügen");
+      setStatus(r.d.added ? "♥ zu Younes-Favoriten hinzugefügt"
+                          : "Ist schon in Younes-Favoriten");
+      if (r.d.added) reloadFavorites();
+    })
+    .catch(function (err) { setStatus(String(err.message || err)); })
+    .then(function () { favBtn.disabled = false; });
+});
+
 playPauseBtn.addEventListener("click", togglePlayPause);
 prevBtn.addEventListener("click", () => changeTrack(-1));
 nextBtn.addEventListener("click", () => changeTrack(1));
@@ -297,7 +314,17 @@ function renderFavoriteRow(playlistId, track, index) {
   favoritesGrid.appendChild(row);
 }
 
+let favoritesPlaylistId = null;
+
+// Nach dem Hinzufügen neu laden, damit die Liste unten nicht veraltet.
+function reloadFavorites() {
+  if (!favoritesPlaylistId) return;
+  favoritesGrid.innerHTML = "";
+  loadFavorites(favoritesPlaylistId);
+}
+
 function loadFavorites(playlistId) {
+  favoritesPlaylistId = playlistId;
   fetch("/api/queue/playlist/" + playlistId)
     .then(function (res) { return res.ok ? res.json() : []; })
     .then(function (tracks) {
