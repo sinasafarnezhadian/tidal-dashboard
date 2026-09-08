@@ -182,4 +182,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 00:20 UTC
+Letzte Änderung: 2026-09-09 00:30 UTC
