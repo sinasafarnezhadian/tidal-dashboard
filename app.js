@@ -181,11 +181,15 @@ function renderTile(item) {
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML =
-    '<div class="type-tag">' + (item.type === "playlist" ? "Playlist" : "Album") + "</div>" +
     '<div class="cover-slot"><span class="emoji">' + (item.emoji || "🎵") + "</span></div>" +
     '<div class="title">' + item.title + "</div>";
+  card.addEventListener("click", function () {
+    unlockAudio();
+    openItem(item);
+  });
+  collections.appendChild(card);
 
-  // Show Tidal's artwork, keeping the emoji as the fallback if it fails.
+  // Show Tidal's own artwork and name; the configured ones stay as fallback.
   const cover = new Image();
   cover.className = "cover";
   cover.alt = "";
@@ -195,11 +199,13 @@ function renderTile(item) {
     slot.appendChild(cover);
   });
   cover.src = "/api/art/" + item.type + "/" + item.tidalId;
-  card.addEventListener("click", function () {
-    unlockAudio();
-    openItem(item);
-  });
-  collections.appendChild(card);
+
+  fetch("/api/info/" + item.type + "/" + item.tidalId)
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (data) {
+      if (data && data.title) card.querySelector(".title").textContent = data.title;
+    })
+    .catch(function () {});
 }
 
 function renderTrackRow(item) {

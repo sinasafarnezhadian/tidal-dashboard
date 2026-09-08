@@ -41,8 +41,8 @@ html, body {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
   padding: 20px;
   max-width: 1100px;
   margin: 0 auto;
@@ -53,15 +53,11 @@ html, body {
   border: 2px solid var(--accent-green);
   border-radius: 20px;
   box-shadow: var(--shadow);
-  padding: 24px 16px;
+  padding: 12px 14px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
-  min-height: 160px;
-  justify-content: center;
-  text-align: center;
 }
 
 .card:active {
@@ -88,6 +84,7 @@ html, body {
 }
 
 @media (max-width: 620px) {
+  .grid { grid-template-columns: 1fr; }
   .track-list { grid-template-columns: 1fr; }
 }
 
@@ -152,12 +149,13 @@ html, body {
 }
 
 .card > * + * {
-  margin-top: 10px;
+  margin-left: 14px;
 }
 
 .cover-slot {
-  width: 96px;
-  height: 96px;
+  flex: none;
+  width: 88px;
+  height: 88px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -168,17 +166,21 @@ html, body {
 }
 
 .cover {
-  width: 96px;
-  height: 96px;
+  width: 88px;
+  height: 88px;
   object-fit: cover;
   border-radius: 12px;
   display: block;
 }
 
 .card .title {
+  min-width: 0;
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--earth-dark);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card .artist {
@@ -186,13 +188,6 @@ html, body {
   color: var(--earth-brown);
 }
 
-.card .type-tag {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--accent-green-dark);
-  font-weight: 700;
-}
 
 .now-playing {
   text-align: center;

@@ -150,14 +150,15 @@ gestellt werden, da der Server mit dem eigenen Tidal-Login zugreift.
 Nach dem Ändern von `config.json` reicht ein Neuladen der Seite im
 iPad-Browser – kein Neustart des Servers nötig.
 
-Die Kacheln zeigen das Cover aus Tidal; das `emoji` aus der `config.json`
-dient nur noch als Rückfall, wenn es kein Bild gibt. Die Bilder laufen über
+Die Kacheln zeigen Cover und Name aus Tidal; `emoji` und `title` aus der
+`config.json` dienen nur noch als Rückfall, falls Bild oder Name nicht
+abrufbar sind. Die Bilder laufen über
 `/api/art/...` durch den eigenen Server, damit der Browser keine weitere
 Tidal-Domain braucht (relevant, wenn im Heimnetz ein DNS-Filter läuft).
 
-Das Board ist zweigeteilt: Playlists und Alben stehen oben als Kacheln,
-darunter – durch eine Linie getrennt – die einzelnen Lieder als zweispaltige
-Liste mit Play-Button links. Ein Tipp auf eine Kachel oder Zeile startet die
+Das Board ist zweigeteilt: Playlists und Alben stehen oben als zweispaltige
+Kacheln (Cover links, Name rechts), darunter – durch eine Linie getrennt – die
+einzelnen Lieder als ebenfalls zweispaltige Liste mit Play-Button links. Ein Tipp auf eine Kachel oder Zeile startet die
 Wiedergabe sofort; der Player bleibt beim
 Scrollen oben stehen. Im Fortschrittsbalken lässt sich im Titel springen, und
 am Ende eines Titels läuft die Playlist automatisch weiter.
@@ -177,4 +178,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 23:20 UTC
+Letzte Änderung: 2026-09-08 23:35 UTC

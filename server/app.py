@@ -191,6 +191,24 @@ def queue(item_type, item_id):
     return jsonify([track_info(t) for t in tracks])
 
 
+@app.route("/api/info/<item_type>/<item_id>")
+def info(item_type, item_id):
+    """Name as it is in Tidal, so tiles do not depend on the title in
+    config.json."""
+    if api is None:
+        return jsonify({"error": "Nicht bei Tidal eingeloggt."}), 401
+    try:
+        if item_type == "playlist":
+            title = api.get_playlist(item_id).title
+        elif item_type == "album":
+            title = api.get_album(item_id).title
+        else:
+            abort(400)
+    except Exception as exc:  # noqa: BLE001 - the tile keeps its configured title
+        return jsonify({"error": str(exc)}), 502
+    return jsonify({"title": title})
+
+
 @app.route("/api/art/<item_type>/<item_id>")
 def art(item_type, item_id):
     """Cover image for a tile. Proxied rather than linked so the browser only
