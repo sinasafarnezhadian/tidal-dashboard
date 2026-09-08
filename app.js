@@ -44,6 +44,8 @@ function resetPlayback() {
   audio.load();
 }
 
+let failedInARow = 0;
+
 // Kept synchronous on purpose: an await before play() would cost us the
 // user gesture that iOS requires to let audio start.
 function playCurrentTrack() {
@@ -55,11 +57,21 @@ function playCurrentTrack() {
   renderPlayerControls();
   setStatus("Lädt …");
   playing
-    .then(() => setStatus(""))
+    .then(() => {
+      failedInARow = 0;
+      setStatus("");
+    })
     .catch((err) => setStatus(`${err.name}: ${err.message}`));
 }
 
+// A single broken track should not strand the whole playlist.
 audio.addEventListener("error", () => {
+  failedInARow += 1;
+  if (failedInARow < queue.length && queueIndex < queue.length - 1) {
+    setStatus("Titel nicht abspielbar – überspringe …");
+    changeTrack(1);
+    return;
+  }
   const code = audio.error ? audio.error.code : "?";
   setStatus(`Audio-Fehler (Code ${code}) – Stream nicht abspielbar.`);
 });

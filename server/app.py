@@ -155,6 +155,15 @@ def track_info(track):
     }
 
 
+def is_playable(track):
+    """Skip what the browser could not play anyway: tracks the account may not
+    stream (tiddl checks the same flag before downloading) and Dolby Atmos,
+    which is delivered as eac3/ac4."""
+    if not getattr(track, "allowStreaming", True):
+        return False
+    return "DOLBY_ATMOS" not in (getattr(track, "audioModes", None) or [])
+
+
 def collect_tracks(fetch_page):
     tracks, offset = [], 0
     while True:
@@ -162,7 +171,7 @@ def collect_tracks(fetch_page):
         tracks += [entry.item for entry in page.items if entry.type == "track"]
         offset += page.limit
         if offset >= page.totalNumberOfItems:
-            return tracks
+            return [t for t in tracks if is_playable(t)]
 
 
 @app.route("/api/queue/<item_type>/<item_id>")

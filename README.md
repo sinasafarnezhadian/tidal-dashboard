@@ -153,4 +153,4 @@ iPad-Browser – kein Neustart des Servers nötig.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 21:20 UTC
+Letzte Änderung: 2026-09-08 21:30 UTC
