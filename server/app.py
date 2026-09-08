@@ -1,13 +1,16 @@
 import collections
-import datetime
 import json
 import os
 import pathlib
 import threading
+import time
 
 import requests
-import tidalapi
-from flask import Flask, abort, jsonify, request, send_file, send_from_directory
+from flask import Flask, abort, jsonify, send_file, send_from_directory
+from tiddl.core.api import TidalAPI, TidalClient
+from tiddl.core.auth.api import AuthAPI
+from tiddl.core.auth.exceptions import AuthClientError
+from tiddl.core.utils.parse import parse_track_stream
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR.parent
@@ -16,69 +19,94 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 SESSION_FILE = DATA_DIR / "tidal_session.json"
 CACHE_DIR = DATA_DIR / "cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
+API_CACHE = DATA_DIR / "api_cache"
+
+# HIGH returns a "bts" manifest, i.e. ready-to-play m4a urls. Only
+# HI_RES_LOSSLESS comes back as MPEG-DASH, which would need reassembly.
+QUALITY = "HIGH"
+
+app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
+
+auth_api = AuthAPI()
+api: TidalAPI | None = None
+login_state = {"status": "logged_out"}
 
 # Safari fires several requests for the same track at once; without a lock they
 # would all download into the same file and corrupt it.
 download_locks = collections.defaultdict(threading.Lock)
 
-app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
-session = tidalapi.Session()
-# Stay on AAC: concatenated AAC segments are a playable .m4a as-is. LOSSLESS
-# would hand us FLAC-in-MP4, which needs an ffmpeg remux before a browser can
-# play it (that is exactly where tiddl calls extract_flac).
-session.audio_quality = tidalapi.Quality.low_320k
+def save_tokens(tokens):
+    SESSION_FILE.write_text(json.dumps(tokens))
 
 
-def save_session():
-    SESSION_FILE.write_text(json.dumps({
-        "token_type": session.token_type,
-        "access_token": session.access_token,
-        "refresh_token": session.refresh_token,
-        "expiry_time": session.expiry_time.isoformat() if session.expiry_time else None,
-    }))
+def build_api(tokens) -> TidalAPI:
+    def on_token_expiry():
+        refreshed = auth_api.refresh_token(tokens["refresh_token"])
+        tokens["access_token"] = refreshed.access_token
+        save_tokens(tokens)
+        return refreshed.access_token
 
-
-def load_session():
-    if not SESSION_FILE.exists():
-        return False
-    data = json.loads(SESSION_FILE.read_text())
-    expiry = (
-        datetime.datetime.fromisoformat(data["expiry_time"])
-        if data.get("expiry_time")
-        else None
+    client = TidalClient(
+        token=tokens["access_token"],
+        cache_name=str(API_CACHE),
+        on_token_expiry=on_token_expiry,
     )
-    try:
-        return session.load_oauth_session(
-            data["token_type"],
-            data["access_token"],
-            data.get("refresh_token"),
-            expiry,
-            is_pkce=True,
-        )
-    except Exception:  # noqa: BLE001 - fall through to "not logged in"
-        return False
+    return TidalAPI(client, str(tokens["user_id"]), tokens["country_code"])
 
 
-LOGGED_IN = load_session()
-if not LOGGED_IN:
-    print("Nicht bei Tidal eingeloggt. Bitte http://<server>:8080/login/start im Browser öffnen.")
+if SESSION_FILE.exists():
+    api = build_api(json.loads(SESSION_FILE.read_text()))
+    login_state = {"status": "logged_in"}
+else:
+    print("Nicht bei Tidal eingeloggt. Bitte http://<server>:8080/login/start öffnen.")
 
 
-def track_info(track):
-    return {
-        "id": track.id,
-        "title": track.name,
-        "artist": track.artist.name if track.artist else "",
-    }
+def poll_for_login(device):
+    global api, login_state
+    deadline = time.time() + device.expiresIn
+    while time.time() < deadline:
+        time.sleep(device.interval)
+        try:
+            auth = auth_api.get_auth(device.deviceCode)
+        except AuthClientError as exc:
+            if exc.error == "authorization_pending":
+                continue
+            login_state = {"status": "error", "message": str(exc)}
+            return
+
+        tokens = {
+            "access_token": auth.access_token,
+            "refresh_token": auth.refresh_token,
+            "user_id": auth.user.userId,
+            "country_code": auth.user.countryCode,
+        }
+        save_tokens(tokens)
+        api = build_api(tokens)
+        login_state = {"status": "logged_in"}
+        return
+
+    login_state = {"status": "expired"}
 
 
-def require_login():
-    if not session.check_login():
-        return jsonify({
-            "error": "Nicht bei Tidal eingeloggt. Bitte /login/start im Browser öffnen."
-        }), 401
-    return None
+LOGIN_PAGE = """
+<body style="font-family: sans-serif; max-width: 460px; margin: 40px auto; line-height: 1.5">
+  <h2>Tidal-Anmeldung</h2>
+  <p><a href="{url}" target="_blank" style="font-size: 1.2rem">Hier tippen und mit dem
+     Tidal-Konto bestätigen</a></p>
+  <p>Code: <b>{code}</b></p>
+  <p id="state">Warte auf Bestätigung …</p>
+  <script>
+    setInterval(async () => {{
+      const s = await (await fetch("/login/status")).json();
+      if (s.status === "logged_in") document.getElementById("state").textContent =
+        "Angemeldet! Das Dashboard kann jetzt Musik abspielen.";
+      else if (s.status !== "waiting") document.getElementById("state").textContent =
+        "Fehlgeschlagen (" + s.status + "). Seite neu laden für einen neuen Code.";
+    }}, 2000);
+  </script>
+</body>
+"""
 
 
 @app.route("/")
@@ -88,43 +116,51 @@ def index():
 
 @app.route("/login/start")
 def login_start():
-    url = session.pkce_login_url()
-    return f"""
-    <body style="font-family: sans-serif; max-width: 500px; margin: 40px auto;">
-      <p><a href="{url}" target="_blank">1. Hier klicken und mit dem Tidal-Konto einloggen</a></p>
-      <p>2. Nach dem Login landest du auf einer "Oops"-Fehlerseite &ndash; die komplette
-         Adresse aus der Adresszeile kopieren und hier einfügen:</p>
-      <form method="post" action="/login/callback">
-        <input type="text" name="url" style="width: 100%" placeholder="https://...">
-        <button type="submit">Bestätigen</button>
-      </form>
-    </body>
-    """
+    global login_state
+    if login_state.get("status") != "waiting":
+        device = auth_api.get_device_auth()
+        url = device.verificationUriComplete
+        if not url.startswith("http"):
+            url = "https://" + url
+        login_state = {"status": "waiting", "url": url, "code": device.userCode}
+        threading.Thread(target=poll_for_login, args=(device,), daemon=True).start()
+    return LOGIN_PAGE.format(url=login_state["url"], code=login_state["code"])
 
 
-@app.route("/login/callback", methods=["POST"])
-def login_callback():
-    url_redirect = request.form.get("url", "")
-    try:
-        token_dict = session.pkce_get_auth_token(url_redirect)
-        session.process_auth_token(token_dict, is_pkce_token=True)
-        save_session()
-    except Exception as exc:  # noqa: BLE001
-        return f"Login fehlgeschlagen: {exc}", 400
-    return "Login erfolgreich! Dieses Fenster kann geschlossen werden."
+@app.route("/login/status")
+def login_status():
+    return jsonify(login_state)
+
+
+def track_info(track):
+    return {
+        "id": track.id,
+        "title": track.title,
+        "artist": track.artist.name if track.artist else "",
+    }
+
+
+def collect_tracks(fetch_page):
+    tracks, offset = [], 0
+    while True:
+        page = fetch_page(100, offset)
+        tracks += [entry.item for entry in page.items if entry.type == "track"]
+        offset += page.limit
+        if offset >= page.totalNumberOfItems:
+            return tracks
 
 
 @app.route("/api/queue/<item_type>/<item_id>")
 def queue(item_type, item_id):
-    if (err := require_login()) is not None:
-        return err
+    if api is None:
+        return jsonify({"error": "Nicht bei Tidal eingeloggt. Bitte /login/start öffnen."}), 401
     try:
         if item_type == "track":
-            tracks = [session.track(item_id)]
+            tracks = [api.get_track(item_id)]
         elif item_type == "playlist":
-            tracks = session.playlist(item_id).tracks()
+            tracks = collect_tracks(lambda limit, offset: api.get_playlist_items(item_id, limit, offset))
         elif item_type == "album":
-            tracks = session.album(item_id).tracks()
+            tracks = collect_tracks(lambda limit, offset: api.get_album_items(item_id, limit, offset))
         else:
             abort(400)
     except Exception as exc:  # noqa: BLE001 - surface the real Tidal error to the frontend
@@ -135,21 +171,20 @@ def queue(item_type, item_id):
 
 @app.route("/api/stream/<track_id>")
 def stream(track_id):
-    if (err := require_login()) is not None:
-        return err
+    if api is None:
+        return jsonify({"error": "Nicht bei Tidal eingeloggt. Bitte /login/start öffnen."}), 401
     if not track_id.isdigit():  # the id becomes a filename below
         abort(400)
-    # Tidal serves most tracks as MPEG-DASH: an init segment plus media segments.
-    # Concatenated they form a plain .m4a, so we assemble the whole file first and
-    # then serve it - Safari rejects a chunked response of unknown length with
-    # MEDIA_ERR_SRC_NOT_SUPPORTED and only accepts byte-range requests.
+
+    # The finished file is served rather than a live stream: Safari rejects a
+    # chunked response of unknown length with MEDIA_ERR_SRC_NOT_SUPPORTED and
+    # asks for byte ranges instead.
     cached = CACHE_DIR / f"{track_id}.m4a"
 
     with download_locks[track_id]:
         if not cached.exists():
             try:
-                manifest = session.track(track_id).get_stream().get_stream_manifest()
-                urls = manifest.get_urls()
+                urls, _ = parse_track_stream(api.get_track_stream(track_id, QUALITY))
                 partial = cached.with_suffix(".part")
                 with partial.open("wb") as out:
                     for url in urls:

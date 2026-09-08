@@ -10,7 +10,8 @@ Tidal bietet **keine offizielle API für eingebettete Vollwiedergabe** durch
 Drittanbieter-Seiten (das offizielle Embed-Widget spielt nur 30-Sekunden-
 Vorschauen). Damit trotzdem volle Songs direkt im Dashboard laufen, nutzt
 dieses Projekt die **inoffizielle Tidal-API** über die Bibliothek
-[`tidalapi`](https://github.com/tamland/python-tidal).
+[`tiddl`](https://github.com/oskvr37/tiddl) – dieselbe, die auch das
+Download-Tool tidarr verwendet.
 
 Das bedeutet konkret:
 - Es verstößt gegen Tidals Nutzungsbedingungen – im schlimmsten Fall könnte
@@ -29,17 +30,15 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
 - `index.html` / `style.css` / `app.js` – Frontend mit den Kacheln und dem
   eigenen Play/Pause-Player (Beige/Hellgrün/Erdtöne).
 - `server/app.py` – kleiner Python-Server (Flask), der sich einmalig bei
-  Tidal anmeldet, Playlist/Album/Track-Infos abruft und Stream-Infos an das
-  Frontend liefert. Liefert auch gleich die statischen Dateien aus.
+  Tidal anmeldet, Playlist/Album/Track-Infos abruft und die Audiodateien an
+  das Frontend liefert. Liefert auch gleich die statischen Dateien aus.
 - `config.json` – Liste der Playlists/Alben/Lieder, die als Kacheln
   angezeigt werden.
-Tidal liefert die meisten Tracks als MPEG-DASH aus (Init-Segment + viele
-Einzelsegmente statt einer fertigen Datei). Der Server setzt diese Segmente
-zusammen, legt das Ergebnis unter `data/cache/<track-id>.m4a` ab und liefert
-es als vollwertige Datei mit Byte-Range-Unterstützung aus. Im Frontend läuft
-daher ein simples `<audio>`-Element – ohne DASH-Player, MediaSource oder
-DRM-Handling. Das ist derselbe Ansatz, den auch Download-Tools wie tidarr
-serverseitig verwenden.
+
+Der Server holt die Audiodaten in der Qualitätsstufe `HIGH` (320 kbit/s AAC),
+legt sie unter `data/cache/<track-id>.m4a` ab und liefert sie als vollwertige
+Datei mit Byte-Range-Unterstützung aus. Im Frontend läuft daher ein simples
+`<audio>`-Element – ohne DASH-Player, MediaSource oder DRM-Handling.
 
 Der Cache ist nötig, weil Safari eine gestreamte Antwort ohne bekannte Länge
 mit `MEDIA_ERR_SRC_NOT_SUPPORTED` ablehnt – und er macht das zweite Abspielen
@@ -81,23 +80,18 @@ Bei beiden Varianten gilt: Der Login-Token landet dank Volume-Mount in
    im Stack-Ordner auf dem Host – bleibt also auch bei Neubau/Neustart des
    Containers erhalten.
 
-Beim **ersten Start** (und wenn `./data/tidal_session.json` fehlt/ungültig
-ist) im Browser aufrufen:
+Beim **ersten Start** (und wenn `./data/tidal_session.json` fehlt) im Browser
+aufrufen:
 
 ```
 http://<lokale-IP-des-Docker-Hosts>:8080/login/start
 ```
 
-Dort auf den Login-Link tippen, mit dem Tidal-Konto anmelden (aktives Abo
-nötig). Nach dem Login landet man auf einer „Oops"-Fehlerseite – deren
-komplette Adresse aus der Adresszeile kopieren und auf der `/login/start`-
-Seite ins Textfeld einfügen und bestätigen. Der Server merkt sich den Login
-danach dauerhaft in `./data/tidal_session.json` – kein erneuter Login bei
-künftigen Neustarts, solange der `./data`-Ordner erhalten bleibt.
-
-(Dieser Umweg über eine Fehlerseiten-URL ist Tidals eigener PKCE-Login-Ablauf,
-der – anders als der einfachere Geräte-Code-Login – auch bei Konten
-funktioniert, die sonst einen „401 Unauthorized" beim Abspielen bekommen.)
+Dort auf den Link tippen und die Anmeldung im Tidal-Konto bestätigen (aktives
+Abo nötig) – mehr nicht, die Seite meldet von selbst „Angemeldet". Der Login
+wird dauerhaft in `./data/tidal_session.json` gespeichert und bei Ablauf
+automatisch erneuert; solange der `./data`-Ordner erhalten bleibt, ist kein
+erneuter Login nötig.
 
 Die Seite ist danach im Heimnetz erreichbar unter:
 
@@ -159,4 +153,4 @@ iPad-Browser – kein Neustart des Servers nötig.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 20:55 UTC
+Letzte Änderung: 2026-09-08 21:10 UTC
