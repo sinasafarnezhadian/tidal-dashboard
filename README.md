@@ -159,8 +159,12 @@ Tidal-Domain braucht (relevant, wenn im Heimnetz ein DNS-Filter läuft).
 Das Board ist zweigeteilt: Playlists und Alben stehen oben als zweispaltige
 Kacheln (Cover links, Name rechts), darunter – durch eine Linie getrennt – die
 einzelnen Lieder als ebenfalls zweispaltige Liste mit Play-Button links. Ein Tipp auf eine Kachel oder Zeile startet die
-Wiedergabe sofort; der Player bleibt beim
-Scrollen oben stehen. Im Fortschrittsbalken lässt sich im Titel springen, und
+Wiedergabe sofort; der Player bleibt beim Scrollen oben stehen. Läuft eine
+Playlist oder ein Album, klappt der Kopfbereich nach unten auf und zeigt alle
+Titel von 1 bis n – jede Zeile ist antippbar und springt direkt dorthin, der
+laufende Titel ist hervorgehoben. Die Liste ist auf 45 % der Bildschirmhöhe
+begrenzt und scrollt innen, damit eine lange Playlist das Board nicht
+verdrängt. Im Fortschrittsbalken lässt sich im Titel springen, und
 am Ende eines Titels läuft die Playlist automatisch weiter.
 
 ### Ältere iPads
@@ -178,4 +182,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 23:35 UTC
+Letzte Änderung: 2026-09-09 00:05 UTC

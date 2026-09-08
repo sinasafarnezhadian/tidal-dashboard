@@ -13,6 +13,7 @@ const seek = document.getElementById("seek");
 const timeCurrent = document.getElementById("time-current");
 const timeTotal = document.getElementById("time-total");
 const statusLine = document.getElementById("player-status");
+const queueList = document.getElementById("queue-list");
 
 let queue = [];
 let queueIndex = 0;
@@ -59,6 +60,45 @@ function formatTime(seconds) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// The queue only earns its space when there is more than one track.
+function renderQueueList() {
+  queueList.innerHTML = "";
+  queueList.hidden = queue.length < 2;
+  if (queueList.hidden) return;
+
+  queue.forEach(function (track, index) {
+    const row = document.createElement("li");
+    row.className = "queue-item";
+    row.innerHTML =
+      '<span class="queue-index">' + (index + 1) + "</span>" +
+      '<span class="queue-text"><span class="queue-title">' + track.title + "</span>" +
+      (track.artist ? '<span class="queue-artist">' + track.artist + "</span>" : "") +
+      "</span>";
+    row.addEventListener("click", function () {
+      if (index === queueIndex) {
+        togglePlayPause();
+        return;
+      }
+      queueIndex = index;
+      playCurrentTrack();
+    });
+    queueList.appendChild(row);
+  });
+}
+
+function highlightCurrentInQueue() {
+  const rows = queueList.children;
+  for (let i = 0; i < rows.length; i++) {
+    rows[i].className = i === queueIndex ? "queue-item active" : "queue-item";
+  }
+  const active = rows[queueIndex];
+  // scrollTop instead of scrollIntoView(options), which older Safari ignores.
+  if (active && queueList.scrollHeight > queueList.clientHeight) {
+    const top = active.offsetTop - queueList.clientHeight / 2 + active.offsetHeight / 2;
+    queueList.scrollTop = Math.max(0, top);
+  }
+}
+
 function renderTrackInfo() {
   const track = queue[queueIndex];
   if (!track) return;
@@ -69,6 +109,7 @@ function renderTrackInfo() {
   // Tidal knows the length, so show it before the audio metadata arrives.
   seek.max = track.duration || 0;
   timeTotal.textContent = formatTime(track.duration || 0);
+  highlightCurrentInQueue();
 }
 
 function playCurrentTrack() {
@@ -171,6 +212,7 @@ async function openItem(item) {
     queue = data;
     queueIndex = 0;
     failedInARow = 0;
+    renderQueueList();
     playCurrentTrack();
   } catch (err) {
     setStatus(String(err.message || err));
