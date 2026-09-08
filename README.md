@@ -169,4 +169,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 22:25 UTC
+Letzte Änderung: 2026-09-08 22:35 UTC
