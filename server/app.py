@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import pathlib
+import random
 import threading
 import time
 
@@ -192,6 +193,49 @@ def queue(item_type, item_id):
         return jsonify({"error": str(exc)}), 502
 
     return jsonify([track_info(t) for t in tracks])
+
+
+@app.route("/api/discover")
+def discover():
+    """Playlists related to the configured ones.
+
+    Tidal has no "playlists similar to this playlist" endpoint - only similar
+    artists, radios and similar albums, none of which return playlists. So we
+    go via the artists actually present in the configured playlists and use
+    the one endpoint that does return playlists: search.
+    """
+    if api is None:
+        return jsonify({"error": "Nicht bei Tidal eingeloggt."}), 401
+
+    config = json.loads((STATIC_DIR / "config.json").read_text())
+    if not config.get("discover"):
+        return jsonify([])
+
+    configured = {item.get("tidalId") for item in config.get("items", [])}
+    artists, seen = [], set()
+    try:
+        for item in config.get("items", []):
+            if item.get("type") != "playlist":
+                continue
+            for entry in api.get_playlist_items(item["tidalId"], 50, 0).items:
+                name = entry.item.artist.name if entry.item.artist else None
+                if name and name not in seen:
+                    seen.add(name)
+                    artists.append(name)
+
+        found, ids = [], set()
+        for name in random.sample(artists, min(3, len(artists))):
+            for playlist in api.get_search(name).playlists.items:
+                if playlist.uuid in configured or playlist.uuid in ids:
+                    continue
+                ids.add(playlist.uuid)
+                found.append({"type": "playlist", "tidalId": playlist.uuid,
+                              "title": playlist.title})
+    except Exception as exc:  # noqa: BLE001 - the section simply stays empty
+        return jsonify({"error": str(exc)}), 502
+
+    random.shuffle(found)
+    return jsonify(found[:6])
 
 
 @app.route("/api/info/<item_type>/<item_id>")

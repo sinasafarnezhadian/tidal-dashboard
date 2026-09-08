@@ -1,6 +1,8 @@
 const collections = document.getElementById("collections");
 const trackList = document.getElementById("tracks");
 const sectionDivider = document.getElementById("section-divider");
+const discoverGrid = document.getElementById("discover");
+const discoverDivider = document.getElementById("discover-divider");
 const audio = document.getElementById("audio");
 
 const player = document.getElementById("player");
@@ -227,7 +229,8 @@ async function openItem(item) {
   }
 }
 
-function renderTile(item) {
+function renderTile(item, target) {
+  const grid = target || collections;
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML =
@@ -237,7 +240,7 @@ function renderTile(item) {
     unlockAudio();
     openItem(item);
   });
-  collections.appendChild(card);
+  grid.appendChild(card);
 
   // Show Tidal's own artwork and name; the configured ones stay as fallback.
   const cover = new Image();
@@ -249,6 +252,9 @@ function renderTile(item) {
     slot.appendChild(cover);
   });
   cover.src = "/api/art/" + item.type + "/" + item.tidalId;
+
+  // Empfehlungen bringen den Namen schon aus der Suche mit.
+  if (item.titleFromTidal) return;
 
   fetch("/api/info/" + item.type + "/" + item.tidalId)
     .then(function (res) { return res.ok ? res.json() : null; })
@@ -274,14 +280,33 @@ function renderTrackRow(item) {
   trackList.appendChild(row);
 }
 
+// Empfehlungen: nur wenn in der config.json eingeschaltet - der Server
+// antwortet sonst mit einer leeren Liste.
+function loadDiscover() {
+  fetch("/api/discover")
+    .then(function (res) { return res.ok ? res.json() : []; })
+    .then(function (found) {
+      if (!found.length) return;
+      discoverDivider.hidden = false;
+      found.forEach(function (item) {
+        item.titleFromTidal = true;
+        renderTile(item, discoverGrid);
+      });
+    })
+    .catch(function () {});
+}
+
 fetch("config.json")
   .then((res) => res.json())
   .then((data) => {
     const items = data.items || [];
-    items.filter((i) => i.type !== "track").forEach(renderTile);
+    // Kein bloßes forEach(renderTile): forEach reicht den Index als zweites
+    // Argument durch, das hier das Ziel-Grid wäre.
+    items.filter((i) => i.type !== "track").forEach((i) => renderTile(i));
     const tracks = items.filter((i) => i.type === "track");
     tracks.forEach(renderTrackRow);
     sectionDivider.hidden = !tracks.length || tracks.length === items.length;
+    loadDiscover();
   })
   .catch((err) => {
     collections.innerHTML = `<p>Konnte config.json nicht laden: ${err}</p>`;

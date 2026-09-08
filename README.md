@@ -128,6 +128,7 @@ Alles wird in `config.json` gepflegt:
 
 ```json
 {
+  "discover": true,
   "items": [
     { "type": "playlist", "title": "Gute-Laune-Playlist", "tidalId": "PLAYLIST-UUID", "emoji": "🎧" },
     { "type": "album", "title": "Albumname", "tidalId": "ALBUM-ID", "emoji": "💿" },
@@ -135,6 +136,14 @@ Alles wird in `config.json` gepflegt:
   ]
 }
 ```
+
+`discover` schaltet den Empfehlungsbereich unter den Liedern ein oder aus.
+Tidal hat **keinen** Endpunkt für „ähnliche Playlists"; es gibt nur ähnliche
+Künstler, Radios und ähnliche Alben, die alle keine Playlists liefern. Der
+Bereich nimmt daher die Künstler aus den eingetragenen Playlists, wählt davon
+zufällig drei aus und sucht nach ihnen – die Suche ist die einzige Stelle der
+API, die Playlists zurückgibt. Bereits eingetragene Playlists werden
+aussortiert, die Auswahl wechselt bei jedem Seitenaufruf.
 
 So findet man die IDs in der Tidal-App:
 - **Playlist**: Playlist öffnen → Teilen → Link kopieren, z. B.
@@ -189,4 +198,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 01:05 UTC
+Letzte Änderung: 2026-09-09 01:30 UTC
