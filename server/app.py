@@ -1,4 +1,4 @@
-import collections
+import base64
 import json
 import os
 import pathlib
@@ -6,71 +6,68 @@ import threading
 import time
 
 import requests
-from flask import Flask, abort, jsonify, send_file, send_from_directory
+from flask import Flask, Response, abort, jsonify, request, send_from_directory, stream_with_context
 from tiddl.core.api import TidalAPI, TidalClient
 from tiddl.core.auth.api import AuthAPI
 from tiddl.core.auth.exceptions import AuthClientError
-from tiddl.core.utils.parse import parse_track_stream
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR.parent
 DATA_DIR = pathlib.Path(os.environ.get("DATA_DIR", BASE_DIR))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 SESSION_FILE = DATA_DIR / "tidal_session.json"
-CACHE_DIR = DATA_DIR / "cache"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
 API_CACHE = DATA_DIR / "api_cache"
 
-# HIGH returns a "bts" manifest, i.e. ready-to-play m4a urls. Only
-# HI_RES_LOSSLESS comes back as MPEG-DASH, which would need reassembly.
-QUALITY = "HIGH"
+# Tried in order until one yields a "bts" manifest, i.e. one finished audio
+# file. HI_RES_LOSSLESS is deliberately absent: it only comes as MPEG-DASH
+# segments, which a plain <audio> element cannot play.
+QUALITIES = ["HIGH", "LOW", "LOSSLESS"]
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
 auth_api = AuthAPI()
 api: TidalAPI | None = None
+tokens: dict | None = None
 login_state = {"status": "logged_out"}
-
-# Safari fires several requests for the same track at once; without a lock they
-# would all download into the same file and corrupt it.
-download_locks = collections.defaultdict(threading.Lock)
 
 
 def save_tokens(tokens):
     SESSION_FILE.write_text(json.dumps(tokens))
 
 
-def build_api(tokens) -> TidalAPI:
-    def on_token_expiry():
-        refreshed = auth_api.refresh_token(tokens["refresh_token"])
-        tokens["access_token"] = refreshed.access_token
-        save_tokens(tokens)
-        return refreshed.access_token
+def refresh_access_token() -> str:
+    refreshed = auth_api.refresh_token(tokens["refresh_token"])
+    tokens["access_token"] = refreshed.access_token
+    save_tokens(tokens)
+    return refreshed.access_token
 
+
+def build_api(tokens) -> TidalAPI:
     client = TidalClient(
         token=tokens["access_token"],
         cache_name=str(API_CACHE),
-        on_token_expiry=on_token_expiry,
+        on_token_expiry=refresh_access_token,
     )
     return TidalAPI(client, str(tokens["user_id"]), tokens["country_code"])
 
 
-def load_saved_api():
+def load_saved_login():
     """Restore a stored login, ignoring an unusable session file rather than
     crashing on startup (e.g. one written by the earlier tidalapi backend)."""
+    global api, tokens
     if not SESSION_FILE.exists():
-        return None
+        return
     try:
-        tokens = json.loads(SESSION_FILE.read_text())
-        if not all(k in tokens for k in ("access_token", "refresh_token", "user_id", "country_code")):
-            return None
-        return build_api(tokens)
+        saved = json.loads(SESSION_FILE.read_text())
+        if not all(k in saved for k in ("access_token", "refresh_token", "user_id", "country_code")):
+            return
+        tokens = saved
+        api = build_api(tokens)
     except Exception as exc:  # noqa: BLE001
         print(f"Gespeicherte Sitzung unbrauchbar ({exc}), bitte neu anmelden.")
-        return None
 
 
-api = load_saved_api()
+load_saved_login()
 if api is not None:
     login_state = {"status": "logged_in"}
 else:
@@ -78,7 +75,7 @@ else:
 
 
 def poll_for_login(device):
-    global api, login_state
+    global api, login_state, tokens
     deadline = time.time() + device.expiresIn
     while time.time() < deadline:
         time.sleep(device.interval)
@@ -193,35 +190,78 @@ def queue(item_type, item_id):
     return jsonify([track_info(t) for t in tracks])
 
 
+def playback_urls(track_id, quality, retry=True):
+    """Ask Tidal where the audio lives. Only "bts" manifests are accepted:
+    they point at one finished file, while DASH would hand us segments that a
+    plain <audio> element cannot play. This mirrors tidarr's player, which
+    uses playbackinfo rather than the downloader's playbackinfopostpaywall."""
+    resp = requests.get(
+        f"https://api.tidal.com/v1/tracks/{track_id}/playbackinfo",
+        params={
+            "countryCode": tokens["country_code"],
+            "audioquality": quality,
+            "playbackmode": "STREAM",
+            "assetpresentation": "FULL",
+        },
+        headers={"Authorization": f"Bearer {tokens['access_token']}", "Accept": "application/json"},
+        timeout=15,
+    )
+    if resp.status_code == 401 and retry:
+        refresh_access_token()
+        return playback_urls(track_id, quality, retry=False)
+    if not resp.ok:
+        return None
+
+    data = resp.json()
+    if data.get("manifestMimeType") != "application/vnd.tidal.bts":
+        return None
+    manifest = json.loads(base64.b64decode(data["manifest"]))
+    return manifest.get("urls")
+
+
 @app.route("/api/stream/<track_id>")
 def stream(track_id):
     if api is None:
         return jsonify({"error": "Nicht bei Tidal eingeloggt. Bitte /login/start öffnen."}), 401
-    if not track_id.isdigit():  # the id becomes a filename below
-        abort(400)
 
-    # The finished file is served rather than a live stream: Safari rejects a
-    # chunked response of unknown length with MEDIA_ERR_SRC_NOT_SUPPORTED and
-    # asks for byte ranges instead.
-    cached = CACHE_DIR / f"{track_id}.m4a"
+    source = None
+    for quality in QUALITIES:
+        try:
+            urls = playback_urls(track_id, quality)
+        except Exception as exc:  # noqa: BLE001
+            return jsonify({"error": str(exc)}), 502
+        if urls:
+            source = urls[0]
+            break
+    if source is None:
+        return jsonify({"error": "Keine abspielbare Qualität für diesen Titel."}), 502
 
-    with download_locks[track_id]:
-        if not cached.exists():
-            try:
-                urls, _ = parse_track_stream(api.get_track_stream(track_id, QUALITY))
-                partial = cached.with_suffix(".part")
-                with partial.open("wb") as out:
-                    for url in urls:
-                        with requests.get(url, stream=True, timeout=30) as resp:
-                            resp.raise_for_status()
-                            for chunk in resp.iter_content(chunk_size=65536):
-                                out.write(chunk)
-                partial.replace(cached)
-            except Exception as exc:  # noqa: BLE001
-                cached.with_suffix(".part").unlink(missing_ok=True)
-                return jsonify({"error": str(exc)}), 502
+    # Pass the browser's Range request straight through to Tidal and hand its
+    # answer back unchanged. That way playback starts immediately instead of
+    # after a full download, and Safari gets the 206 plus Content-Length it
+    # insists on - both come from Tidal's CDN.
+    upstream = requests.get(
+        source,
+        headers={"Range": request.headers["Range"]} if "Range" in request.headers else {},
+        stream=True,
+        timeout=30,
+    )
+    if not upstream.ok:
+        upstream.close()
+        return jsonify({"error": f"Tidal antwortete mit {upstream.status_code}."}), 502
 
-    return send_file(cached, mimetype="audio/mp4", conditional=True)
+    passthrough = ("Content-Type", "Content-Length", "Accept-Ranges", "Content-Range",
+                   "Cache-Control", "Last-Modified", "ETag")
+
+    def body():
+        with upstream:
+            yield from upstream.iter_content(chunk_size=65536)
+
+    return Response(
+        stream_with_context(body()),
+        status=upstream.status_code,
+        headers={h: upstream.headers[h] for h in passthrough if h in upstream.headers},
+    )
 
 
 if __name__ == "__main__":

@@ -35,15 +35,17 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
 - `config.json` – Liste der Playlists/Alben/Lieder, die als Kacheln
   angezeigt werden.
 
-Der Server holt die Audiodaten in der Qualitätsstufe `HIGH` (320 kbit/s AAC),
-legt sie unter `data/cache/<track-id>.m4a` ab und liefert sie als vollwertige
-Datei mit Byte-Range-Unterstützung aus. Im Frontend läuft daher ein simples
-`<audio>`-Element – ohne DASH-Player, MediaSource oder DRM-Handling.
+Der Server ermittelt bei Tidal die Adresse der fertigen Audiodatei und reicht
+sie durch: Der `Range`-Header des Browsers geht unverändert an Tidals CDN, und
+dessen Antwort (`206`, `Content-Length`, `Content-Range`) kommt genauso zurück.
+Dadurch startet die Wiedergabe sofort, statt erst nach einem vollständigen
+Download, und Safari bekommt die Byte-Bereiche, ohne die es die Wiedergabe
+verweigert. Im Frontend genügt darum ein simples `<audio>`-Element – ohne
+DASH-Player, MediaSource oder DRM-Handling.
 
-Der Cache ist nötig, weil Safari eine gestreamte Antwort ohne bekannte Länge
-mit `MEDIA_ERR_SRC_NOT_SUPPORTED` ablehnt – und er macht das zweite Abspielen
-eines Tracks sofort. Ein Track belegt ca. 8-10 MB; der Ordner kann jederzeit
-gefahrlos gelöscht werden.
+Verwendet werden nur „bts"-Manifeste, also fertige Dateien; die Qualitäten
+`HIGH`, `LOW` und `LOSSLESS` werden der Reihe nach probiert. `HI_RES_LOSSLESS`
+bleibt außen vor, weil es nur als MPEG-DASH-Segmente ausgeliefert wird.
 
 ## Einrichtung
 
@@ -153,4 +155,4 @@ iPad-Browser – kein Neustart des Servers nötig.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 21:30 UTC
+Letzte Änderung: 2026-09-08 21:45 UTC
