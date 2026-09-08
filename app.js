@@ -16,6 +16,9 @@ const timeCurrent = document.getElementById("time-current");
 const timeTotal = document.getElementById("time-total");
 const statusLine = document.getElementById("player-status");
 const queueList = document.getElementById("queue-list");
+const queueToggle = document.getElementById("queue-toggle");
+const favoritesGrid = document.getElementById("favorites");
+const favoritesDivider = document.getElementById("favorites-divider");
 
 let queue = [];
 let queueIndex = 0;
@@ -68,8 +71,8 @@ function formatTime(seconds) {
 // The queue only earns its space when there is more than one track.
 function renderQueueList() {
   queueList.innerHTML = "";
-  queueList.hidden = queue.length < 2;
-  if (queueList.hidden) return;
+  applyQueueCollapsed();
+  if (queue.length < 2) return;
 
   queue.forEach(function (track, index) {
     const row = document.createElement("li");
@@ -91,6 +94,19 @@ function renderQueueList() {
     queueList.appendChild(row);
   });
 }
+
+let queueCollapsed = false;
+
+function applyQueueCollapsed() {
+  queueList.hidden = queueCollapsed || queue.length < 2;
+  queueToggle.hidden = queue.length < 2;
+  queueToggle.textContent = queueCollapsed ? "▼" : "▲";
+}
+
+queueToggle.addEventListener("click", function () {
+  queueCollapsed = !queueCollapsed;
+  applyQueueCollapsed();
+});
 
 function highlightCurrentInQueue() {
   const rows = queueList.children;
@@ -208,7 +224,7 @@ audio.addEventListener("error", () => {
   setStatus(`Audio-Fehler (Code ${code}) – Stream nicht abspielbar.`);
 });
 
-async function openItem(item) {
+async function openItem(item, startIndex) {
   player.hidden = false;
   npTitle.textContent = "…";
   npArtist.textContent = "";
@@ -220,7 +236,7 @@ async function openItem(item) {
     if (!res.ok) throw new Error(data.error || "Konnte Titel nicht laden");
     if (!data.length) throw new Error("Keine abspielbaren Titel gefunden.");
     queue = data;
-    queueIndex = 0;
+    queueIndex = startIndex && startIndex < data.length ? startIndex : 0;
     failedInARow = 0;
     renderQueueList();
     playCurrentTrack();
@@ -260,6 +276,36 @@ function renderTile(item, target) {
     .then(function (res) { return res.ok ? res.json() : null; })
     .then(function (data) {
       if (data && data.title) card.querySelector(".title").textContent = data.title;
+    })
+    .catch(function () {});
+}
+
+// Wie eine Kachel, nur dass die ganze Playlist geladen und ab dieser Stelle
+// gespielt wird.
+function renderFavoriteRow(playlistId, track, index) {
+  const row = document.createElement("div");
+  row.className = "track-row";
+  row.innerHTML =
+    '<span class="track-play" aria-hidden="true">▶</span>' +
+    '<span class="track-text"><span class="track-title">' + track.title + "</span>" +
+    (track.artist ? '<span class="track-artist">' + track.artist + "</span>" : "") +
+    "</span>";
+  row.addEventListener("click", function () {
+    unlockAudio();
+    openItem({ type: "playlist", tidalId: playlistId, title: track.title }, index);
+  });
+  favoritesGrid.appendChild(row);
+}
+
+function loadFavorites(playlistId) {
+  fetch("/api/queue/playlist/" + playlistId)
+    .then(function (res) { return res.ok ? res.json() : []; })
+    .then(function (tracks) {
+      if (!tracks.length) return;
+      favoritesDivider.hidden = false;
+      tracks.forEach(function (track, index) {
+        renderFavoriteRow(playlistId, track, index);
+      });
     })
     .catch(function () {});
 }
@@ -306,6 +352,7 @@ fetch("config.json")
     const tracks = items.filter((i) => i.type === "track");
     tracks.forEach(renderTrackRow);
     sectionDivider.hidden = !tracks.length || tracks.length === items.length;
+    if (data.favorites) loadFavorites(data.favorites);
     loadDiscover();
   })
   .catch((err) => {

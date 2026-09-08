@@ -70,7 +70,7 @@ html, body {
   list-style: none;
   /* Negative Ränder heben das Innenabstand der Topbar auf, damit die Liste
      bis an beide Kanten und bis zur Unterkante des Kopfbereichs reicht. */
-  margin: 10px -16px -10px;
+  margin: 10px -16px 0;
   padding: 0 16px;
   background: var(--queue-bg);
   border-top: 1px solid var(--accent-green);
@@ -126,6 +126,24 @@ html, body {
   font-size: 0.85rem;
   color: var(--earth-brown);
 }
+
+.queue-toggle {
+  display: block;
+  /* Ein <button> schrumpft auf seinen Inhalt, negative Ränder allein
+     genügen hier nicht - die Breite muss explizit gesetzt werden. */
+  width: calc(100% + 32px);
+  margin: 0 -16px -10px;
+  padding: 10px 16px;
+  background: var(--queue-bg);
+  border: none;
+  border-top: 1px solid var(--accent-green);
+  color: var(--accent-green-dark);
+  font-size: 1rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.queue-toggle[hidden] { display: none; }
 
 .section-divider {
   border: none;

@@ -129,6 +129,7 @@ Alles wird in `config.json` gepflegt:
 ```json
 {
   "discover": true,
+  "favorites": "PLAYLIST-UUID",
   "items": [
     { "type": "playlist", "title": "Gute-Laune-Playlist", "tidalId": "PLAYLIST-UUID", "emoji": "🎧" },
     { "type": "album", "title": "Albumname", "tidalId": "ALBUM-ID", "emoji": "💿" },
@@ -136,6 +137,11 @@ Alles wird in `config.json` gepflegt:
   ]
 }
 ```
+
+`favorites` ist die UUID einer Playlist, deren Titel direkt unter den Kacheln
+als eigene Liste erscheinen – gedacht für die Lieblingslieder des Kindes. Ein
+Tipp darauf spielt ab dieser Stelle die ganze Playlist weiter. Fehlt der
+Eintrag, entfällt der Bereich.
 
 `discover` schaltet den Empfehlungsbereich unter den Liedern ein oder aus.
 Tidal hat **keinen** Endpunkt für „ähnliche Playlists"; es gibt nur ähnliche
@@ -180,7 +186,8 @@ Playlist oder ein Album, klappt der Kopfbereich nach unten auf und zeigt alle
 Titel von 1 bis n – jede Zeile ist antippbar und springt direkt dorthin, der
 laufende Titel ist hervorgehoben. Die Liste ist auf 45 % der Bildschirmhöhe
 begrenzt und scrollt innen, damit eine lange Playlist das Board nicht
-verdrängt. Im Fortschrittsbalken lässt sich im Titel springen, und
+verdrängt; über den Pfeil an ihrer Unterkante lässt sie sich ganz einklappen
+und wieder auf die Standardgröße bringen. Im Fortschrittsbalken lässt sich im Titel springen, und
 am Ende eines Titels läuft die Playlist automatisch weiter.
 
 ### Ältere iPads
@@ -198,4 +205,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 01:30 UTC
+Letzte Änderung: 2026-09-09 02:00 UTC
