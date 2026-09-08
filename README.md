@@ -38,13 +38,34 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
 
 ### Variante A: Docker / Dockge (empfohlen)
 
-Das Repo enthält ein `Dockerfile` und `docker-compose.yml`. In Dockge:
+Das Repo enthält ein `Dockerfile` und `docker-compose.yml`.
+
+**A1 – Repo vorher klonen:**
 
 1. Neuen Stack anlegen, Repo-Ordner (bzw. dessen Inhalt) als Stack-Verzeichnis
    verwenden – `docker-compose.yml` wird automatisch erkannt.
 2. Stack starten (Deploy). Dockge/Docker Compose baut das Image aus dem
    `Dockerfile` und startet den Container.
-3. Der Login-Token landet dank Volume-Mount in `./data/tidal_session.json`
+
+**A2 – Direkt in Dockge einfügen (kein Klonen nötig):** neuen Stack anlegen
+und diese `compose.yaml` einfügen – Docker holt sich den Build-Context
+selbst per Git:
+
+```yaml
+services:
+  tidal-dashboard:
+    build:
+      context: https://github.com/sinasafarnezhadian/tidal-dashboard.git#main
+    container_name: tidal-dashboard
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+```
+
+Bei beiden Varianten gilt: Der Login-Token landet dank Volume-Mount in
+`./data/tidal_session.json`
    im Stack-Ordner auf dem Host – bleibt also auch bei Neubau/Neustart des
    Containers erhalten.
 
