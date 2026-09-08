@@ -35,10 +35,16 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
   angezeigt werden.
 Tidal liefert die meisten Tracks als MPEG-DASH aus (Init-Segment + viele
 Einzelsegmente statt einer fertigen Datei). Der Server setzt diese Segmente
-zusammen und schickt dem Browser eine ganz normale Audio-Datei – im Frontend
-läuft daher ein simples `<audio>`-Element, ohne DASH-Player, MediaSource oder
+zusammen, legt das Ergebnis unter `data/cache/<track-id>.m4a` ab und liefert
+es als vollwertige Datei mit Byte-Range-Unterstützung aus. Im Frontend läuft
+daher ein simples `<audio>`-Element – ohne DASH-Player, MediaSource oder
 DRM-Handling. Das ist derselbe Ansatz, den auch Download-Tools wie tidarr
-serverseitig verwenden, und umgeht die Wiedergabe-Eigenheiten von iOS-Safari.
+serverseitig verwenden.
+
+Der Cache ist nötig, weil Safari eine gestreamte Antwort ohne bekannte Länge
+mit `MEDIA_ERR_SRC_NOT_SUPPORTED` ablehnt – und er macht das zweite Abspielen
+eines Tracks sofort. Ein Track belegt ca. 8-10 MB; der Ordner kann jederzeit
+gefahrlos gelöscht werden.
 
 ## Einrichtung
 
@@ -153,4 +159,4 @@ iPad-Browser – kein Neustart des Servers nötig.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 20:35 UTC
+Letzte Änderung: 2026-09-08 20:45 UTC

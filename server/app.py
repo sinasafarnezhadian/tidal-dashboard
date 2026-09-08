@@ -5,13 +5,15 @@ import pathlib
 
 import requests
 import tidalapi
-from flask import Flask, Response, abort, jsonify, request, send_from_directory, stream_with_context
+from flask import Flask, abort, jsonify, request, send_file, send_from_directory
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR.parent
 DATA_DIR = pathlib.Path(os.environ.get("DATA_DIR", BASE_DIR))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 SESSION_FILE = DATA_DIR / "tidal_session.json"
+CACHE_DIR = DATA_DIR / "cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
@@ -129,26 +131,31 @@ def queue(item_type, item_id):
 def stream(track_id):
     if (err := require_login()) is not None:
         return err
-    try:
-        manifest = session.track(track_id).get_stream().get_stream_manifest()
-        urls = manifest.get_urls()
-    except Exception as exc:  # noqa: BLE001
-        return jsonify({"error": str(exc)}), 502
-
+    if not track_id.isdigit():  # the id becomes a filename below
+        abort(400)
     # Tidal serves most tracks as MPEG-DASH: an init segment plus media segments.
-    # Concatenated they form a plain fragmented MP4, so we stitch them here and
-    # hand the browser an ordinary audio file - no DASH player needed client-side.
-    is_flac = str(getattr(manifest, "file_extension", "")).endswith("flac")
-    mimetype = "audio/flac" if is_flac else "audio/mp4"
+    # Concatenated they form a plain .m4a, so we assemble the whole file first and
+    # then serve it - Safari rejects a chunked response of unknown length with
+    # MEDIA_ERR_SRC_NOT_SUPPORTED and only accepts byte-range requests.
+    cached = CACHE_DIR / f"{track_id}.m4a"
 
-    def segments():
-        for url in urls:
-            with requests.get(url, stream=True, timeout=30) as resp:
-                resp.raise_for_status()
-                for chunk in resp.iter_content(chunk_size=65536):
-                    yield chunk
+    if not cached.exists():
+        try:
+            manifest = session.track(track_id).get_stream().get_stream_manifest()
+            urls = manifest.get_urls()
+            partial = cached.with_suffix(".part")
+            with partial.open("wb") as out:
+                for url in urls:
+                    with requests.get(url, stream=True, timeout=30) as resp:
+                        resp.raise_for_status()
+                        for chunk in resp.iter_content(chunk_size=65536):
+                            out.write(chunk)
+            partial.replace(cached)
+        except Exception as exc:  # noqa: BLE001
+            cached.with_suffix(".part").unlink(missing_ok=True)
+            return jsonify({"error": str(exc)}), 502
 
-    return Response(stream_with_context(segments()), mimetype=mimetype)
+    return send_file(cached, mimetype="audio/mp4", conditional=True)
 
 
 if __name__ == "__main__":
