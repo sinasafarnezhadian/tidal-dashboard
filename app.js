@@ -5,23 +5,8 @@ const playerFrameWrap = document.getElementById("player-frame-wrap");
 const closeBtn = document.getElementById("close-player");
 
 const audio = document.getElementById("audio");
-let dashPlayer = null;
 let queue = [];
 let queueIndex = 0;
-let streamDataCache = {};
-
-// iOS only lets a media element play if it was first started inside a real tap.
-// Every play() here happens after an await, so the tap no longer counts - we
-// "unlock" the element with a silent clip synchronously in the tap handler.
-const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=";
-let audioUnlocked = false;
-
-function unlockAudio() {
-  if (audioUnlocked) return;
-  audioUnlocked = true;
-  audio.src = SILENT_WAV;
-  audio.play().catch(() => {});
-}
 
 function renderPlayerControls() {
   const track = queue[queueIndex];
@@ -50,68 +35,36 @@ function setStatus(text) {
   if (el) el.textContent = text;
 }
 
-async function getStreamData(trackId) {
-  if (streamDataCache[trackId]) return streamDataCache[trackId];
-  const res = await fetch(`/api/stream/${trackId}`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Stream konnte nicht geladen werden");
-  streamDataCache[trackId] = data;
-  return data;
-}
-
 let trackLoaded = false;
 
 function resetPlayback() {
-  if (dashPlayer) {
-    dashPlayer.reset();
-    dashPlayer = null;
-  }
   trackLoaded = false;
   audio.pause();
   audio.removeAttribute("src");
   audio.load();
 }
 
-async function playCurrentTrack() {
+// Kept synchronous on purpose: an await before play() would cost us the
+// user gesture that iOS requires to let audio start.
+function playCurrentTrack() {
   const track = queue[queueIndex];
   if (!track) return;
-  setStatus("Lädt …");
-  resetPlayback();
-  try {
-    const data = await getStreamData(track.id);
-    if (data.type === "dash") {
-      if (!window.MediaSource && !window.ManagedMediaSource) {
-        throw new Error("Browser unterstützt kein MediaSource – DASH nicht abspielbar.");
-      }
-      const blob = new Blob([data.manifest], { type: "application/dash+xml" });
-      const blobUrl = URL.createObjectURL(blob);
-      dashPlayer = dashjs.MediaPlayer().create();
-      dashPlayer.on(dashjs.MediaPlayer.events.ERROR, (e) => {
-        setStatus("dash.js: " + (e.error?.message || JSON.stringify(e.error)));
-      });
-      dashPlayer.initialize(audio, blobUrl, false);
-      await new Promise((resolve) => {
-        dashPlayer.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, resolve);
-        setTimeout(resolve, 5000);
-      });
-    } else {
-      audio.src = data.url;
-    }
-    trackLoaded = true;
-    try {
-      await audio.play();
-      setStatus("");
-    } catch (err) {
-      setStatus(`Wiedergabe blockiert (${err.name}): ${err.message}`);
-    }
-  } catch (err) {
-    setStatus(String(err.message || err));
-  }
+  audio.src = `/api/stream/${track.id}`;
+  trackLoaded = true;
+  const playing = audio.play();
   renderPlayerControls();
+  setStatus("Lädt …");
+  playing
+    .then(() => setStatus(""))
+    .catch((err) => setStatus(`${err.name}: ${err.message}`));
 }
 
+audio.addEventListener("error", () => {
+  const code = audio.error ? audio.error.code : "?";
+  setStatus(`Audio-Fehler (Code ${code}) – Stream nicht abspielbar.`);
+});
+
 function togglePlayPause() {
-  unlockAudio();
   if (!trackLoaded) {
     playCurrentTrack();
   } else if (audio.paused) {
@@ -137,7 +90,6 @@ audio.addEventListener("play", updatePlayButton);
 audio.addEventListener("pause", updatePlayButton);
 
 audio.addEventListener("ended", () => {
-  if (!trackLoaded) return; // ignore the silent unlock clip
   if (queueIndex < queue.length - 1) {
     changeTrack(1);
   } else {
@@ -150,7 +102,6 @@ async function openPlayer(item) {
   overlay.hidden = false;
   playerFrameWrap.innerHTML = "<p>Lädt …</p>";
   resetPlayback();
-  streamDataCache = {};
 
   try {
     const res = await fetch(`/api/queue/${item.type}/${item.tidalId}`);
@@ -185,10 +136,7 @@ function renderCard(item) {
     <div class="title">${item.title}</div>
     ${item.artist ? `<div class="artist">${item.artist}</div>` : ""}
   `;
-  card.addEventListener("click", () => {
-    unlockAudio();
-    openPlayer(item);
-  });
+  card.addEventListener("click", () => openPlayer(item));
   grid.appendChild(card);
 }
 

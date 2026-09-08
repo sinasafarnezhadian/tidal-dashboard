@@ -3,8 +3,9 @@ import json
 import os
 import pathlib
 
+import requests
 import tidalapi
-from flask import Flask, abort, jsonify, request, send_from_directory
+from flask import Flask, Response, abort, jsonify, request, send_from_directory, stream_with_context
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR.parent
@@ -125,16 +126,26 @@ def stream(track_id):
     if (err := require_login()) is not None:
         return err
     try:
-        media = session.track(track_id).get_stream()
-        if getattr(media, "is_bts", False):
-            manifest = media.get_stream_manifest()
-            return jsonify({"type": "url", "url": manifest.get_urls()[0]})
-        # MPEG-DASH: hand the raw manifest XML to the frontend, played via dash.js.
-        # Tidal's DASH manifests for audio are unencrypted (no DRM/license step needed).
-        return jsonify({"type": "dash", "manifest": media.get_manifest_data()})
+        manifest = session.track(track_id).get_stream().get_stream_manifest()
+        urls = manifest.get_urls()
     except Exception as exc:  # noqa: BLE001
         return jsonify({"error": str(exc)}), 502
 
+    # Tidal serves most tracks as MPEG-DASH: an init segment plus media segments.
+    # Concatenated they form a plain fragmented MP4, so we stitch them here and
+    # hand the browser an ordinary audio file - no DASH player needed client-side.
+    is_flac = str(getattr(manifest, "file_extension", "")).endswith("flac")
+    mimetype = "audio/flac" if is_flac else "audio/mp4"
+
+    def segments():
+        for url in urls:
+            with requests.get(url, stream=True, timeout=30) as resp:
+                resp.raise_for_status()
+                for chunk in resp.iter_content(chunk_size=65536):
+                    yield chunk
+
+    return Response(stream_with_context(segments()), mimetype=mimetype)
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, threaded=True)

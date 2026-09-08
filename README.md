@@ -33,11 +33,12 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
   Frontend liefert. Liefert auch gleich die statischen Dateien aus.
 - `config.json` – Liste der Playlists/Alben/Lieder, die als Kacheln
   angezeigt werden.
-- `vendor/dash.all.min.js` – [dash.js](https://github.com/Dash-Industry-Forum/dash.js),
-  spielt Tidals MPEG-DASH-Streams im Browser ab (die meisten Tracks liefert
-  Tidal inzwischen nur noch als DASH-Manifest, nicht mehr als einfache
-  Direct-URL; die Streams sind dabei unverschlüsselt, also ohne DRM/Lizenz-
-  Schritt abspielbar).
+Tidal liefert die meisten Tracks als MPEG-DASH aus (Init-Segment + viele
+Einzelsegmente statt einer fertigen Datei). Der Server setzt diese Segmente
+zusammen und schickt dem Browser eine ganz normale Audio-Datei – im Frontend
+läuft daher ein simples `<audio>`-Element, ohne DASH-Player, MediaSource oder
+DRM-Handling. Das ist derselbe Ansatz, den auch Download-Tools wie tidarr
+serverseitig verwenden, und umgeht die Wiedergabe-Eigenheiten von iOS-Safari.
 
 ## Einrichtung
 
@@ -152,4 +153,4 @@ iPad-Browser – kein Neustart des Servers nötig.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 20:15 UTC
+Letzte Änderung: 2026-09-08 20:25 UTC
