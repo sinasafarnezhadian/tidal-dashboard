@@ -16,6 +16,10 @@ SESSION_FILE = DATA_DIR / "tidal_session.json"
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
 session = tidalapi.Session()
+# Stay on AAC: concatenated AAC segments are a playable .m4a as-is. LOSSLESS
+# would hand us FLAC-in-MP4, which needs an ffmpeg remux before a browser can
+# play it (that is exactly where tiddl calls extract_flac).
+session.audio_quality = tidalapi.Quality.low_320k
 
 
 def save_session():
