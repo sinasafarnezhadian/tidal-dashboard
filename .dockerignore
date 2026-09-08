@@ -1,0 +1,8 @@
+.git
+.gitignore
+venv
+server/venv
+server/tidal_session.json
+server/__pycache__
+**/__pycache__
+*.pyc

@@ -36,8 +36,42 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
 
 ## Einrichtung
 
-Auf einem immer laufenden Rechner im Heimnetz (Raspberry Pi, NAS, alter PC),
-mit Python 3 installiert:
+### Variante A: Docker / Dockge (empfohlen)
+
+Das Repo enthält ein `Dockerfile` und `docker-compose.yml`. In Dockge:
+
+1. Neuen Stack anlegen, Repo-Ordner (bzw. dessen Inhalt) als Stack-Verzeichnis
+   verwenden – `docker-compose.yml` wird automatisch erkannt.
+2. Stack starten (Deploy). Dockge/Docker Compose baut das Image aus dem
+   `Dockerfile` und startet den Container.
+3. Der Login-Token landet dank Volume-Mount in `./data/tidal_session.json`
+   im Stack-Ordner auf dem Host – bleibt also auch bei Neubau/Neustart des
+   Containers erhalten.
+
+Beim **ersten Start** steht der Login-Link im Container-Log (in Dockge über
+das Log-Symbol des Stacks einsehbar), z. B.:
+
+```
+Visit https://link.tidal.com/XXXXX to log in, the code will expire in 300 seconds
+```
+
+Diesen Link auf einem beliebigen Gerät (Handy reicht) öffnen und mit dem
+Tidal-Konto bestätigen (das Konto braucht ein aktives Abo). Der Server merkt
+sich den Login danach dauerhaft – kein erneuter Login bei künftigen
+Neustarts, solange der `./data`-Ordner erhalten bleibt.
+
+Die Seite ist danach im Heimnetz erreichbar unter:
+
+```
+http://<lokale-IP-des-Docker-Hosts>:8080
+```
+
+Port lässt sich in `docker-compose.yml` unter `ports` anpassen, falls 8080
+schon belegt ist.
+
+### Variante B: Direkt mit Python (ohne Docker)
+
+Auf einem immer laufenden Rechner im Heimnetz, mit Python 3 installiert:
 
 ```bash
 cd tidal-dashboard
@@ -47,25 +81,9 @@ pip install -r server/requirements.txt
 python3 server/app.py
 ```
 
-Beim **ersten Start** zeigt das Terminal einen Link und einen Code an, z. B.:
-
-```
-Visit https://link.tidal.com/XXXXX to log in, the code will expire in 300 seconds
-```
-
-Diesen Link auf einem beliebigen Gerät (Handy reicht) öffnen und mit dem
-Tidal-Konto bestätigen (das Konto braucht ein aktives Abo). Danach läuft der
-Server weiter und merkt sich den Login in `server/tidal_session.json` – bei
-späteren Starts ist kein erneuter Login nötig.
-
-Die Seite ist danach im Heimnetz erreichbar unter:
-
-```
-http://<lokale-IP-des-Rechners>:8080
-```
-
-Damit der Server automatisch nach einem Neustart wieder läuft, kann man ihn
-z. B. als systemd-Service einrichten (optional).
+Login-Ablauf und Seiten-Adresse wie oben beschrieben; der Token landet dann
+in `server/tidal_session.json`. Für Autostart nach Neustart z. B. als
+systemd-Service einrichten (optional).
 
 ## Playlists/Lieder pflegen
 

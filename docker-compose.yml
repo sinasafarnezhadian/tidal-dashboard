@@ -1,0 +1,9 @@
+services:
+  tidal-dashboard:
+    build: .
+    container_name: tidal-dashboard
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data

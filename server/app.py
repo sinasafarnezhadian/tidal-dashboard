@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 import tidalapi
@@ -5,7 +6,9 @@ from flask import Flask, abort, jsonify, send_from_directory
 
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR.parent
-SESSION_FILE = BASE_DIR / "tidal_session.json"
+DATA_DIR = pathlib.Path(os.environ.get("DATA_DIR", BASE_DIR))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+SESSION_FILE = DATA_DIR / "tidal_session.json"
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
