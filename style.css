@@ -21,16 +21,34 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
-header {
-  padding: 24px 20px 8px;
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  border-bottom: 2px solid var(--accent-green);
+  padding: 16px 20px 12px;
+  box-shadow: 0 2px 10px rgba(107, 79, 59, 0.08);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: var(--earth-dark);
   text-align: center;
 }
 
-header h1 {
-  margin: 0;
-  font-size: 2rem;
-  color: var(--earth-dark);
+.player {
+  max-width: 640px;
+  margin: 12px auto 0;
+  background: var(--card-bg);
+  border: 2px solid var(--accent-green);
+  border-radius: 20px;
+  padding: 14px 18px;
+  box-shadow: var(--shadow);
 }
+
+.player[hidden] { display: none; }
 
 .grid {
   display: grid;
@@ -86,80 +104,38 @@ header h1 {
   font-weight: 700;
 }
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(74, 63, 53, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 10;
-}
-
-.overlay[hidden] { display: none; }
-
-.player-card {
-  background: var(--card-bg);
-  border-radius: 24px;
-  padding: 20px;
-  width: 100%;
-  max-width: 420px;
-  box-shadow: var(--shadow);
-  position: relative;
-}
-
-.player-card h2 {
-  margin: 0 0 12px;
-  color: var(--earth-dark);
-  padding-right: 30px;
-}
-
-.close-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: var(--accent-green);
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  font-size: 1.1rem;
-  color: white;
-  cursor: pointer;
-}
-
 .now-playing {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
 .np-title {
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--earth-dark);
 }
 
 .np-artist {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--earth-brown);
-  margin-top: 4px;
+  margin-top: 2px;
+  min-height: 1.2em;
 }
 
 .player-controls {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: 18px;
 }
 
 .ctrl-btn {
   background: var(--card-bg-hover);
   border: 2px solid var(--accent-green);
   border-radius: 50%;
-  width: 52px;
-  height: 52px;
-  font-size: 1.3rem;
+  width: 48px;
+  height: 48px;
+  font-size: 1.2rem;
   color: var(--earth-dark);
   cursor: pointer;
 }
@@ -170,18 +146,68 @@ header h1 {
 }
 
 .ctrl-btn.play-btn {
-  width: 76px;
-  height: 76px;
-  font-size: 1.8rem;
+  width: 64px;
+  height: 64px;
+  font-size: 1.6rem;
   background: var(--accent-green);
   color: white;
   border-color: var(--accent-green-dark);
 }
 
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.time {
+  font-size: 0.85rem;
+  color: var(--earth-brown);
+  font-variant-numeric: tabular-nums;
+  min-width: 3.2em;
+  text-align: center;
+}
+
+.seek {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--accent-green);
+  outline: none;
+  background: linear-gradient(
+    to right,
+    var(--accent-green) 0 calc(var(--played, 0) * 1%),
+    var(--card-bg-hover) calc(var(--played, 0) * 1%) 100%
+  );
+}
+
+.seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-green-dark);
+  border: 2px solid var(--card-bg);
+  cursor: pointer;
+}
+
+.seek::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-green-dark);
+  border: 2px solid var(--card-bg);
+  cursor: pointer;
+}
+
 .player-status {
-  margin-top: 16px;
+  margin-top: 8px;
   text-align: center;
   color: var(--earth-brown);
-  font-size: 0.9rem;
-  min-height: 1.2em;
+  font-size: 0.85rem;
+  min-height: 1.1em;
 }

@@ -149,6 +149,7 @@ def track_info(track):
         "id": track.id,
         "title": track.title,
         "artist": track.artist.name if track.artist else "",
+        "duration": track.duration,
     }
 
 

@@ -28,7 +28,8 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
 ## Architektur
 
 - `index.html` / `style.css` / `app.js` – Frontend mit den Kacheln und dem
-  eigenen Play/Pause-Player (Beige/Hellgrün/Erdtöne).
+  Player im Kopfbereich: Titel, Interpret, Play/Pause, Vor/Zurück sowie
+  Fortschrittsbalken mit Zeitangaben (Beige/Hellgrün/Erdtöne).
 - `server/app.py` – kleiner Python-Server (Flask), der sich einmalig bei
   Tidal anmeldet, Playlist/Album/Track-Infos abruft und die Audiodateien an
   das Frontend liefert. Liefert auch gleich die statischen Dateien aus.
@@ -148,6 +149,10 @@ gestellt werden, da der Server mit dem eigenen Tidal-Login zugreift.
 Nach dem Ändern von `config.json` reicht ein Neuladen der Seite im
 iPad-Browser – kein Neustart des Servers nötig.
 
+Ein Tipp auf eine Kachel startet die Wiedergabe sofort; der Player bleibt beim
+Scrollen oben stehen. Im Fortschrittsbalken lässt sich im Titel springen, und
+am Ende eines Titels läuft die Playlist automatisch weiter.
+
 ## Auf dem iPad einrichten
 
 1. Im Safari-Browser die lokale Adresse (siehe oben) öffnen.
@@ -155,4 +160,4 @@ iPad-Browser – kein Neustart des Servers nötig.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 21:45 UTC
+Letzte Änderung: 2026-09-08 22:05 UTC

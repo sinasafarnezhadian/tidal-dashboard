@@ -1,62 +1,76 @@
 const grid = document.getElementById("grid");
-const overlay = document.getElementById("player-overlay");
-const playerTitle = document.getElementById("player-title");
-const playerFrameWrap = document.getElementById("player-frame-wrap");
-const closeBtn = document.getElementById("close-player");
-
 const audio = document.getElementById("audio");
+
+const player = document.getElementById("player");
+const npTitle = document.getElementById("np-title");
+const npArtist = document.getElementById("np-artist");
+const playPauseBtn = document.getElementById("play-pause-btn");
+const prevBtn = document.getElementById("prev-btn");
+const nextBtn = document.getElementById("next-btn");
+const seek = document.getElementById("seek");
+const timeCurrent = document.getElementById("time-current");
+const timeTotal = document.getElementById("time-total");
+const statusLine = document.getElementById("player-status");
+
 let queue = [];
 let queueIndex = 0;
+let trackLoaded = false;
+let failedInARow = 0;
+let scrubbing = false;
 
-function renderPlayerControls() {
-  const track = queue[queueIndex];
-  if (!track) return;
+// iOS only starts audio that began inside a real tap. Tapping a card has to
+// fetch the track list first, and that await would spend the tap - so the
+// element is unlocked with a silent clip while the tap is still valid.
+const SILENT_WAV = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=";
+let audioUnlocked = false;
 
-  playerFrameWrap.innerHTML = `
-    <div class="now-playing">
-      <div class="np-title">${track.title}</div>
-      <div class="np-artist">${track.artist || ""}</div>
-    </div>
-    <div class="player-controls">
-      <button id="prev-btn" class="ctrl-btn" ${queueIndex === 0 ? "disabled" : ""} aria-label="Zurück">⏮</button>
-      <button id="play-pause-btn" class="ctrl-btn play-btn" aria-label="Play/Pause">${audio.paused ? "▶" : "⏸"}</button>
-      <button id="next-btn" class="ctrl-btn" ${queueIndex === queue.length - 1 ? "disabled" : ""} aria-label="Weiter">⏭</button>
-    </div>
-    <div id="player-status" class="player-status"></div>
-  `;
-
-  document.getElementById("play-pause-btn").addEventListener("click", togglePlayPause);
-  document.getElementById("prev-btn").addEventListener("click", () => changeTrack(-1));
-  document.getElementById("next-btn").addEventListener("click", () => changeTrack(1));
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  audio.src = SILENT_WAV;
+  audio.play().catch(() => {});
 }
 
 function setStatus(text) {
-  const el = document.getElementById("player-status");
-  if (el) el.textContent = text;
+  statusLine.textContent = text;
 }
 
-let trackLoaded = false;
-
-function resetPlayback() {
-  trackLoaded = false;
-  audio.pause();
-  audio.removeAttribute("src");
-  audio.load();
+function paintProgress() {
+  const max = Number(seek.max) || 0;
+  seek.style.setProperty("--played", max ? (Number(seek.value) / max) * 100 : 0);
 }
 
-let failedInARow = 0;
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
-// Kept synchronous on purpose: an await before play() would cost us the
-// user gesture that iOS requires to let audio start.
+function renderTrackInfo() {
+  const track = queue[queueIndex];
+  if (!track) return;
+  npTitle.textContent = track.title;
+  npArtist.textContent = track.artist || "";
+  prevBtn.disabled = queueIndex === 0;
+  nextBtn.disabled = queueIndex === queue.length - 1;
+  // Tidal knows the length, so show it before the audio metadata arrives.
+  seek.max = track.duration || 0;
+  timeTotal.textContent = formatTime(track.duration || 0);
+}
+
 function playCurrentTrack() {
   const track = queue[queueIndex];
   if (!track) return;
   audio.src = `/api/stream/${track.id}`;
   trackLoaded = true;
-  const playing = audio.play();
-  renderPlayerControls();
+  seek.value = 0;
+  timeCurrent.textContent = "0:00";
+  paintProgress();
+  renderTrackInfo();
   setStatus("Lädt …");
-  playing
+  audio
+    .play()
     .then(() => {
       failedInARow = 0;
       setStatus("");
@@ -64,17 +78,12 @@ function playCurrentTrack() {
     .catch((err) => setStatus(`${err.name}: ${err.message}`));
 }
 
-// A single broken track should not strand the whole playlist.
-audio.addEventListener("error", () => {
-  failedInARow += 1;
-  if (failedInARow < queue.length && queueIndex < queue.length - 1) {
-    setStatus("Titel nicht abspielbar – überspringe …");
-    changeTrack(1);
-    return;
-  }
-  const code = audio.error ? audio.error.code : "?";
-  setStatus(`Audio-Fehler (Code ${code}) – Stream nicht abspielbar.`);
-});
+function changeTrack(direction) {
+  const newIndex = queueIndex + direction;
+  if (newIndex < 0 || newIndex >= queue.length) return;
+  queueIndex = newIndex;
+  playCurrentTrack();
+}
 
 function togglePlayPause() {
   if (!trackLoaded) {
@@ -86,58 +95,75 @@ function togglePlayPause() {
   }
 }
 
-function changeTrack(direction) {
-  const newIndex = queueIndex + direction;
-  if (newIndex < 0 || newIndex >= queue.length) return;
-  queueIndex = newIndex;
-  playCurrentTrack();
-}
+playPauseBtn.addEventListener("click", togglePlayPause);
+prevBtn.addEventListener("click", () => changeTrack(-1));
+nextBtn.addEventListener("click", () => changeTrack(1));
 
-function updatePlayButton() {
-  const btn = document.getElementById("play-pause-btn");
-  if (btn) btn.textContent = audio.paused ? "▶" : "⏸";
-}
+audio.addEventListener("play", () => (playPauseBtn.textContent = "⏸"));
+audio.addEventListener("pause", () => (playPauseBtn.textContent = "▶"));
 
-audio.addEventListener("play", updatePlayButton);
-audio.addEventListener("pause", updatePlayButton);
+audio.addEventListener("timeupdate", () => {
+  if (scrubbing) return;
+  seek.value = audio.currentTime;
+  timeCurrent.textContent = formatTime(audio.currentTime);
+  paintProgress();
+});
 
-audio.addEventListener("ended", () => {
-  if (queueIndex < queue.length - 1) {
-    changeTrack(1);
-  } else {
-    renderPlayerControls();
+audio.addEventListener("durationchange", () => {
+  if (Number.isFinite(audio.duration)) {
+    seek.max = audio.duration;
+    timeTotal.textContent = formatTime(audio.duration);
   }
 });
 
-async function openPlayer(item) {
-  playerTitle.textContent = item.title;
-  overlay.hidden = false;
-  playerFrameWrap.innerHTML = "<p>Lädt …</p>";
-  resetPlayback();
+seek.addEventListener("input", () => {
+  scrubbing = true;
+  timeCurrent.textContent = formatTime(Number(seek.value));
+  paintProgress();
+});
+
+seek.addEventListener("change", () => {
+  audio.currentTime = Number(seek.value);
+  scrubbing = false;
+});
+
+audio.addEventListener("ended", () => {
+  if (!trackLoaded) return; // the silent unlock clip
+  if (queueIndex < queue.length - 1) changeTrack(1);
+});
+
+// A single broken track should not strand the whole playlist.
+audio.addEventListener("error", () => {
+  if (!trackLoaded) return;
+  failedInARow += 1;
+  if (failedInARow < queue.length && queueIndex < queue.length - 1) {
+    setStatus("Titel nicht abspielbar – überspringe …");
+    changeTrack(1);
+    return;
+  }
+  const code = audio.error ? audio.error.code : "?";
+  setStatus(`Audio-Fehler (Code ${code}) – Stream nicht abspielbar.`);
+});
+
+async function openItem(item) {
+  player.hidden = false;
+  npTitle.textContent = item.title;
+  npArtist.textContent = "";
+  setStatus("Lädt …");
 
   try {
     const res = await fetch(`/api/queue/${item.type}/${item.tidalId}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Konnte Titel nicht laden");
+    if (!data.length) throw new Error("Keine abspielbaren Titel gefunden.");
     queue = data;
     queueIndex = 0;
-    renderPlayerControls();
+    failedInARow = 0;
+    playCurrentTrack();
   } catch (err) {
-    playerFrameWrap.innerHTML = `<p>${err.message || err}</p>`;
+    setStatus(String(err.message || err));
   }
 }
-
-function closePlayer() {
-  overlay.hidden = true;
-  resetPlayback();
-  queue = [];
-  queueIndex = 0;
-}
-
-closeBtn.addEventListener("click", closePlayer);
-overlay.addEventListener("click", (e) => {
-  if (e.target === overlay) closePlayer();
-});
 
 function renderCard(item) {
   const card = document.createElement("div");
@@ -148,7 +174,10 @@ function renderCard(item) {
     <div class="title">${item.title}</div>
     ${item.artist ? `<div class="artist">${item.artist}</div>` : ""}
   `;
-  card.addEventListener("click", () => openPlayer(item));
+  card.addEventListener("click", () => {
+    unlockAudio();
+    openItem(item);
+  });
   grid.appendChild(card);
 }
 
