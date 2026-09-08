@@ -1,7 +1,12 @@
 {
   "discover": false,
   "favorites": "6f0f2933-7f19-4052-b1a1-1b517fe1e13f",
-  "items": [
+    {
+      "type": "playlist",
+      "title": "Playlist 1",
+      "tidalId": "be85144c-474f-4fbc-b924-0fc314b3dc1c",
+      "emoji": "🎧"
+    },
     {
       "type": "playlist",
       "title": "Playlist 1",
