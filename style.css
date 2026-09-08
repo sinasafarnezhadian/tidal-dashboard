@@ -2,6 +2,7 @@
   --bg: #f4ecdd;
   --card-bg: #fffaf1;
   --card-bg-hover: #fbf2e2;
+  --queue-bg: #e7dbc4;
   --accent-green: #a9c9a0;
   --accent-green-dark: #7fa876;
   --earth-brown: #a97c50;
@@ -68,8 +69,10 @@ html, body {
 .queue-list {
   list-style: none;
   margin: 10px 0 0;
-  padding: 4px 0 0;
-  border-top: 2px solid var(--accent-green);
+  padding: 4px 8px;
+  background: var(--queue-bg);
+  border: 1px solid var(--accent-green);
+  border-radius: 12px;
   /* Ohne Deckel würde eine lange Playlist das Board vom Bildschirm schieben. */
   max-height: 45vh;
   overflow-y: auto;
