@@ -1,7 +1,9 @@
+import collections
 import datetime
 import json
 import os
 import pathlib
+import threading
 
 import requests
 import tidalapi
@@ -14,6 +16,10 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 SESSION_FILE = DATA_DIR / "tidal_session.json"
 CACHE_DIR = DATA_DIR / "cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Safari fires several requests for the same track at once; without a lock they
+# would all download into the same file and corrupt it.
+download_locks = collections.defaultdict(threading.Lock)
 
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
@@ -139,21 +145,22 @@ def stream(track_id):
     # MEDIA_ERR_SRC_NOT_SUPPORTED and only accepts byte-range requests.
     cached = CACHE_DIR / f"{track_id}.m4a"
 
-    if not cached.exists():
-        try:
-            manifest = session.track(track_id).get_stream().get_stream_manifest()
-            urls = manifest.get_urls()
-            partial = cached.with_suffix(".part")
-            with partial.open("wb") as out:
-                for url in urls:
-                    with requests.get(url, stream=True, timeout=30) as resp:
-                        resp.raise_for_status()
-                        for chunk in resp.iter_content(chunk_size=65536):
-                            out.write(chunk)
-            partial.replace(cached)
-        except Exception as exc:  # noqa: BLE001
-            cached.with_suffix(".part").unlink(missing_ok=True)
-            return jsonify({"error": str(exc)}), 502
+    with download_locks[track_id]:
+        if not cached.exists():
+            try:
+                manifest = session.track(track_id).get_stream().get_stream_manifest()
+                urls = manifest.get_urls()
+                partial = cached.with_suffix(".part")
+                with partial.open("wb") as out:
+                    for url in urls:
+                        with requests.get(url, stream=True, timeout=30) as resp:
+                            resp.raise_for_status()
+                            for chunk in resp.iter_content(chunk_size=65536):
+                                out.write(chunk)
+                partial.replace(cached)
+            except Exception as exc:  # noqa: BLE001
+                cached.with_suffix(".part").unlink(missing_ok=True)
+                return jsonify({"error": str(exc)}), 502
 
     return send_file(cached, mimetype="audio/mp4", conditional=True)
 
