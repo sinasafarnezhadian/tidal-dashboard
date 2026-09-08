@@ -69,17 +69,23 @@ Bei beiden Varianten gilt: Der Login-Token landet dank Volume-Mount in
    im Stack-Ordner auf dem Host – bleibt also auch bei Neubau/Neustart des
    Containers erhalten.
 
-Beim **ersten Start** steht der Login-Link im Container-Log (in Dockge über
-das Log-Symbol des Stacks einsehbar), z. B.:
+Beim **ersten Start** (und wenn `./data/tidal_session.json` fehlt/ungültig
+ist) im Browser aufrufen:
 
 ```
-Visit https://link.tidal.com/XXXXX to log in, the code will expire in 300 seconds
+http://<lokale-IP-des-Docker-Hosts>:8080/login/start
 ```
 
-Diesen Link auf einem beliebigen Gerät (Handy reicht) öffnen und mit dem
-Tidal-Konto bestätigen (das Konto braucht ein aktives Abo). Der Server merkt
-sich den Login danach dauerhaft – kein erneuter Login bei künftigen
-Neustarts, solange der `./data`-Ordner erhalten bleibt.
+Dort auf den Login-Link tippen, mit dem Tidal-Konto anmelden (aktives Abo
+nötig). Nach dem Login landet man auf einer „Oops"-Fehlerseite – deren
+komplette Adresse aus der Adresszeile kopieren und auf der `/login/start`-
+Seite ins Textfeld einfügen und bestätigen. Der Server merkt sich den Login
+danach dauerhaft in `./data/tidal_session.json` – kein erneuter Login bei
+künftigen Neustarts, solange der `./data`-Ordner erhalten bleibt.
+
+(Dieser Umweg über eine Fehlerseiten-URL ist Tidals eigener PKCE-Login-Ablauf,
+der – anders als der einfachere Geräte-Code-Login – auch bei Konten
+funktioniert, die sonst einen „401 Unauthorized" beim Abspielen bekommen.)
 
 Die Seite ist danach im Heimnetz erreichbar unter:
 
