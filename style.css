@@ -54,7 +54,9 @@ html, body {
   border: 2px solid var(--accent-green);
   border-radius: 20px;
   box-shadow: var(--shadow);
-  padding: 12px 14px;
+  padding: 0;
+  /* Das Cover sitzt bündig an der Kante; overflow klippt es an die Rundung. */
+  overflow: hidden;
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -238,7 +240,7 @@ html, body {
 }
 
 .card > * + * {
-  margin-left: 14px;
+  margin-left: 12px;
 }
 
 .cover-slot {
@@ -258,12 +260,12 @@ html, body {
   width: 88px;
   height: 88px;
   object-fit: cover;
-  border-radius: 12px;
   display: block;
 }
 
 .card .title {
   min-width: 0;
+  padding-right: 12px;
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--earth-dark);

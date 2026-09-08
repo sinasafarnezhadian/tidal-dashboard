@@ -273,11 +273,14 @@ def art(item_type, item_id):
         elif item_type == "album":
             uid = api.get_album(item_id).cover
         elif item_type == "cover":
-            # Already-known image id, e.g. from a track's album.
+            # Comes straight from the URL, unlike the ids above, which the API
+            # gave us - so this one gets checked before it lands in a path.
+            if not re.fullmatch(r"[0-9a-fA-F-]{8,64}", item_id):
+                abort(404)
             uid = item_id
         else:
             abort(404)
-        if not uid or not re.fullmatch(r"[0-9a-fA-F-]{8,64}", uid):
+        if not uid:
             abort(404)
 
         # Tidal stores the uuid as a path: 1234-5678-... -> 1234/5678/...
