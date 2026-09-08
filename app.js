@@ -5,9 +5,10 @@ const playerFrameWrap = document.getElementById("player-frame-wrap");
 const closeBtn = document.getElementById("close-player");
 
 const audio = new Audio();
+let dashPlayer = null;
 let queue = [];
 let queueIndex = 0;
-let streamUrlCache = {};
+let streamDataCache = {};
 
 function renderPlayerControls() {
   const track = queue[queueIndex];
@@ -36,23 +37,41 @@ function setStatus(text) {
   if (el) el.textContent = text;
 }
 
-async function getStreamUrl(trackId) {
-  if (streamUrlCache[trackId]) return streamUrlCache[trackId];
+async function getStreamData(trackId) {
+  if (streamDataCache[trackId]) return streamDataCache[trackId];
   const res = await fetch(`/api/stream/${trackId}`);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Stream konnte nicht geladen werden");
-  streamUrlCache[trackId] = data.url;
-  return data.url;
+  streamDataCache[trackId] = data;
+  return data;
+}
+
+function resetPlayback() {
+  if (dashPlayer) {
+    dashPlayer.reset();
+    dashPlayer = null;
+  }
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
 }
 
 async function playCurrentTrack() {
   const track = queue[queueIndex];
   if (!track) return;
   setStatus("Lädt …");
+  resetPlayback();
   try {
-    const url = await getStreamUrl(track.id);
-    audio.src = url;
-    await audio.play();
+    const data = await getStreamData(track.id);
+    if (data.type === "dash") {
+      const blob = new Blob([data.manifest], { type: "application/dash+xml" });
+      const blobUrl = URL.createObjectURL(blob);
+      dashPlayer = dashjs.MediaPlayer().create();
+      dashPlayer.initialize(audio, blobUrl, true);
+    } else {
+      audio.src = data.url;
+      await audio.play();
+    }
     setStatus("");
   } catch (err) {
     setStatus(String(err.message || err));
@@ -93,9 +112,8 @@ async function openPlayer(item) {
   playerTitle.textContent = item.title;
   overlay.hidden = false;
   playerFrameWrap.innerHTML = "<p>Lädt …</p>";
-  audio.pause();
-  audio.removeAttribute("src");
-  streamUrlCache = {};
+  resetPlayback();
+  streamDataCache = {};
 
   try {
     const res = await fetch(`/api/queue/${item.type}/${item.tidalId}`);
@@ -111,8 +129,7 @@ async function openPlayer(item) {
 
 function closePlayer() {
   overlay.hidden = true;
-  audio.pause();
-  audio.removeAttribute("src");
+  resetPlayback();
   queue = [];
   queueIndex = 0;
 }

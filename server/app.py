@@ -15,7 +15,6 @@ SESSION_FILE = DATA_DIR / "tidal_session.json"
 app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="")
 
 session = tidalapi.Session()
-session.audio_quality = tidalapi.Quality.low_96k
 
 
 def save_session():
@@ -127,16 +126,12 @@ def stream(track_id):
         return err
     try:
         media = session.track(track_id).get_stream()
-        manifest = media.get_stream_manifest()
-        is_direct_url = getattr(media, "is_bts", None) or getattr(manifest, "is_bts", None)
-        if not is_direct_url:
-            return jsonify({
-                "error": "Nur MPEG-DASH-Stream verfügbar (höchste Tidal-Qualität). "
-                         "Bitte im Tidal-Konto die Streaming-Qualität auf 'High' statt "
-                         "'Lossless/Max' stellen, dann neu versuchen."
-            }), 502
-        urls = manifest.get_urls()
-        return jsonify({"url": urls[0]})
+        if getattr(media, "is_bts", False):
+            manifest = media.get_stream_manifest()
+            return jsonify({"type": "url", "url": manifest.get_urls()[0]})
+        # MPEG-DASH: hand the raw manifest XML to the frontend, played via dash.js.
+        # Tidal's DASH manifests for audio are unencrypted (no DRM/license step needed).
+        return jsonify({"type": "dash", "manifest": media.get_manifest_data()})
     except Exception as exc:  # noqa: BLE001
         return jsonify({"error": str(exc)}), 502
 

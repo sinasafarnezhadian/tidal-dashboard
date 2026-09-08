@@ -29,10 +29,15 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
 - `index.html` / `style.css` / `app.js` – Frontend mit den Kacheln und dem
   eigenen Play/Pause-Player (Beige/Hellgrün/Erdtöne).
 - `server/app.py` – kleiner Python-Server (Flask), der sich einmalig bei
-  Tidal anmeldet, Playlist/Album/Track-Infos abruft und Stream-URLs an das
+  Tidal anmeldet, Playlist/Album/Track-Infos abruft und Stream-Infos an das
   Frontend liefert. Liefert auch gleich die statischen Dateien aus.
 - `config.json` – Liste der Playlists/Alben/Lieder, die als Kacheln
   angezeigt werden.
+- `vendor/dash.all.min.js` – [dash.js](https://github.com/Dash-Industry-Forum/dash.js),
+  spielt Tidals MPEG-DASH-Streams im Browser ab (die meisten Tracks liefert
+  Tidal inzwischen nur noch als DASH-Manifest, nicht mehr als einfache
+  Direct-URL; die Streams sind dabei unverschlüsselt, also ohne DRM/Lizenz-
+  Schritt abspielbar).
 
 ## Einrichtung
 
@@ -147,4 +152,4 @@ iPad-Browser – kein Neustart des Servers nötig.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 19:14 UTC
+Letzte Änderung: 2026-09-08 20:06 UTC
