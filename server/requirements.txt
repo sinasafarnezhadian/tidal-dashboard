@@ -1,2 +1,2 @@
 flask==3.0.3
-tidalapi==0.8.3
+tidalapi==0.8.11
