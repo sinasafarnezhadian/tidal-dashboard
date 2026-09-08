@@ -132,15 +132,17 @@ Alles wird in `config.json` gepflegt:
   "favorites": "PLAYLIST-UUID",
   "items": [
     { "type": "playlist", "title": "Gute-Laune-Playlist", "tidalId": "PLAYLIST-UUID", "emoji": "🎧" },
-    { "type": "album", "title": "Albumname", "tidalId": "ALBUM-ID", "emoji": "💿" },
-    { "type": "track", "title": "Lieblingslied", "artist": "Interpret", "tidalId": "TRACK-ID", "emoji": "🎵" }
+    { "type": "album", "title": "Albumname", "tidalId": "ALBUM-ID", "emoji": "💿" }
   ]
 }
 ```
 
+`items` enthält Playlists und Alben, die als Kacheln erscheinen. Einzelne
+Lieder gibt es dort nicht mehr – die stehen in der `favorites`-Playlist.
+
 `favorites` ist die UUID einer Playlist, deren Titel direkt unter den Kacheln
-als eigene Liste erscheinen – gedacht für die Lieblingslieder des Kindes. Ein
-Tipp darauf spielt ab dieser Stelle die ganze Playlist weiter. Fehlt der
+als eigene Liste mit Cover erscheinen – gedacht für die Lieblingslieder des
+Kindes. Ein Tipp darauf spielt ab dieser Stelle die ganze Playlist weiter. Fehlt der
 Eintrag, entfällt der Bereich.
 
 `discover` schaltet den Empfehlungsbereich unter den Liedern ein oder aus.
@@ -156,8 +158,6 @@ So findet man die IDs in der Tidal-App:
   `https://tidal.com/playlist/1234abcd-...` → die UUID ist die `tidalId`.
 - **Album**: Album öffnen → Teilen → Link kopieren, z. B.
   `https://tidal.com/album/59978731` → die Zahl ist die `tidalId`.
-- **Track**: Lied öffnen → Teilen → Link kopieren, z. B.
-  `https://tidal.com/track/59978731` → die Zahl ist die `tidalId`.
 
 Anders als beim früheren Embed-Widget müssen Playlists **nicht** öffentlich
 gestellt werden, da der Server mit dem eigenen Tidal-Login zugreift.
@@ -178,9 +178,9 @@ abrufbar sind. Die Bilder laufen über
 `/api/art/...` durch den eigenen Server, damit der Browser keine weitere
 Tidal-Domain braucht (relevant, wenn im Heimnetz ein DNS-Filter läuft).
 
-Das Board ist zweigeteilt: Playlists und Alben stehen oben als zweispaltige
-Kacheln (Cover links, Name rechts), darunter – durch eine Linie getrennt – die
-einzelnen Lieder als ebenfalls zweispaltige Liste mit Play-Button links. Ein Tipp auf eine Kachel oder Zeile startet die
+Das Board ist dreigeteilt: Playlists und Alben stehen oben als zweispaltige
+Kacheln (Cover links, Name rechts), darunter – jeweils durch eine Linie
+getrennt – die Titel der `favorites`-Playlist und die Empfehlungen. Ein Tipp auf eine Kachel oder Zeile startet die
 Wiedergabe sofort; der Player bleibt beim Scrollen oben stehen. Läuft eine
 Playlist oder ein Album, klappt der Kopfbereich nach unten auf und zeigt alle
 Titel von 1 bis n – jede Zeile ist antippbar und springt direkt dorthin, der
@@ -205,4 +205,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 02:00 UTC
+Letzte Änderung: 2026-09-09 02:20 UTC

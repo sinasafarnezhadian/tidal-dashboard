@@ -1,6 +1,4 @@
 const collections = document.getElementById("collections");
-const trackList = document.getElementById("tracks");
-const sectionDivider = document.getElementById("section-divider");
 const discoverGrid = document.getElementById("discover");
 const discoverDivider = document.getElementById("discover-divider");
 const audio = document.getElementById("audio");
@@ -286,7 +284,9 @@ function renderFavoriteRow(playlistId, track, index) {
   const row = document.createElement("div");
   row.className = "track-row";
   row.innerHTML =
-    '<span class="track-play" aria-hidden="true">▶</span>' +
+    (track.cover
+      ? '<img class="track-cover" alt="" src="/api/art/cover/' + track.cover + '">'
+      : '<span class="track-play" aria-hidden="true">▶</span>') +
     '<span class="track-text"><span class="track-title">' + track.title + "</span>" +
     (track.artist ? '<span class="track-artist">' + track.artist + "</span>" : "") +
     "</span>";
@@ -310,21 +310,6 @@ function loadFavorites(playlistId) {
     .catch(function () {});
 }
 
-function renderTrackRow(item) {
-  const row = document.createElement("div");
-  row.className = "track-row";
-  row.innerHTML =
-    '<span class="track-play" aria-hidden="true">▶</span>' +
-    '<span class="track-emoji">' + (item.emoji || "🎵") + "</span>" +
-    '<span class="track-text"><span class="track-title">' + item.title + "</span>" +
-    (item.artist ? '<span class="track-artist">' + item.artist + "</span>" : "") +
-    "</span>";
-  row.addEventListener("click", function () {
-    unlockAudio();
-    openItem(item);
-  });
-  trackList.appendChild(row);
-}
 
 // Empfehlungen: nur wenn in der config.json eingeschaltet - der Server
 // antwortet sonst mit einer leeren Liste.
@@ -345,13 +330,9 @@ function loadDiscover() {
 fetch("config.json")
   .then((res) => res.json())
   .then((data) => {
-    const items = data.items || [];
     // Kein bloßes forEach(renderTile): forEach reicht den Index als zweites
     // Argument durch, das hier das Ziel-Grid wäre.
-    items.filter((i) => i.type !== "track").forEach((i) => renderTile(i));
-    const tracks = items.filter((i) => i.type === "track");
-    tracks.forEach(renderTrackRow);
-    sectionDivider.hidden = !tracks.length || tracks.length === items.length;
+    (data.items || []).forEach((i) => renderTile(i));
     if (data.favorites) loadFavorites(data.favorites);
     loadDiscover();
   })

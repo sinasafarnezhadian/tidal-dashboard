@@ -3,6 +3,7 @@ import json
 import os
 import pathlib
 import random
+import re
 import threading
 import time
 
@@ -146,11 +147,14 @@ def login_status():
 
 
 def track_info(track):
+    album = getattr(track, "album", None)
     return {
         "id": track.id,
         "title": track.title,
         "artist": track.artist.name if track.artist else "",
         "duration": track.duration,
+        # Passed along so a cover can be shown without one API call per row.
+        "cover": getattr(album, "cover", None) if album else None,
     }
 
 
@@ -268,9 +272,12 @@ def art(item_type, item_id):
             uid = playlist.squareImage or playlist.image
         elif item_type == "album":
             uid = api.get_album(item_id).cover
+        elif item_type == "cover":
+            # Already-known image id, e.g. from a track's album.
+            uid = item_id
         else:
             abort(404)
-        if not uid:
+        if not uid or not re.fullmatch(r"[0-9a-fA-F-]{8,64}", uid):
             abort(404)
 
         # Tidal stores the uuid as a path: 1234-5678-... -> 1234/5678/...
