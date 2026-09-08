@@ -32,6 +32,13 @@ api: TidalAPI | None = None
 tokens: dict | None = None
 login_state = {"status": "logged_out"}
 
+# Das Herz verändert eine echte Playlist - ein hämmerndes Kind soll nicht
+# im Sekundentakt schreiben. Der Browser sperrt den Button ohnehin, aber
+# verlassen wird sich darauf nicht.
+FAVORITE_COOLDOWN = 3.0
+favorite_lock = threading.Lock()
+last_favorite_add = 0.0
+
 
 def save_tokens(tokens):
     SESSION_FILE.write_text(json.dumps(tokens))
@@ -258,6 +265,14 @@ def favorites_add(track_id):
     playlist_id = json.loads((STATIC_DIR / "config.json").read_text()).get("favorites")
     if not playlist_id:
         return jsonify({"error": "Keine favorites-Playlist in der config.json."}), 400
+
+    global last_favorite_add
+    with favorite_lock:
+        waited = time.monotonic() - last_favorite_add
+        if waited < FAVORITE_COOLDOWN:
+            return jsonify({"error": "Zu schnell – bitte kurz warten.",
+                            "retryIn": round(FAVORITE_COOLDOWN - waited, 1)}), 429
+        last_favorite_add = time.monotonic()
 
     url = f"https://api.tidal.com/v1/playlists/{playlist_id}"
     auth = {"Authorization": f"Bearer {tokens['access_token']}", "Accept": "application/json"}

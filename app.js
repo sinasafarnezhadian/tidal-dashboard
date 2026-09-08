@@ -41,8 +41,23 @@ function unlockAudio() {
   audio.play().catch(() => {});
 }
 
-function setStatus(text) {
+// Bestätigungen sollen kurz stehen bleiben. Ein spät eintreffendes Aufräumen
+// (etwa das erfolgreiche play()-Versprechen) darf sie nicht wegwischen, darum
+// hält holdMs die Meldung so lange gegen leere Meldungen.
+let statusHoldUntil = 0;
+let statusClearTimer = 0;
+
+function setStatus(text, holdMs) {
+  const now = Date.now();
+  if (!text && now < statusHoldUntil) {
+    // Nicht verwerfen, sondern nachholen, sobald die Haltezeit vorbei ist.
+    clearTimeout(statusClearTimer);
+    statusClearTimer = setTimeout(function () { setStatus(""); }, statusHoldUntil - now);
+    return;
+  }
+  clearTimeout(statusClearTimer);
   statusLine.textContent = text;
+  statusHoldUntil = text && holdMs ? now + holdMs : 0;
 }
 
 const PLAYED_COLOR = getComputedStyle(document.documentElement)
@@ -181,12 +196,16 @@ favBtn.addEventListener("click", function () {
     .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, d: d }; }); })
     .then(function (r) {
       if (!r.ok) throw new Error(r.d.error || "Konnte nicht hinzufügen");
+      // Haltezeit wie die Sperre des Knopfes, damit die Rückmeldung sichtbar bleibt.
       setStatus(r.d.added ? "♥ zu Younes-Favoriten hinzugefügt"
-                          : "Ist schon in Younes-Favoriten");
+                          : "Ist schon in Younes-Favoriten", 3000);
       if (r.d.added) reloadFavorites();
     })
-    .catch(function (err) { setStatus(String(err.message || err)); })
-    .then(function () { favBtn.disabled = false; });
+    .catch(function (err) { setStatus(String(err.message || err), 3000); })
+    .then(function () {
+      // Sperre passend zum Server-Guard, damit der Knopf nicht zum Hämmern einlädt.
+      setTimeout(function () { favBtn.disabled = false; }, 3000);
+    });
 });
 
 playPauseBtn.addEventListener("click", togglePlayPause);
@@ -243,6 +262,8 @@ async function openItem(item, startIndex) {
   player.hidden = false;
   npTitle.textContent = "…";
   npArtist.textContent = "";
+  // Neue Auswahl: alte Bestätigung darf weg, auch wenn ihre Haltezeit läuft.
+  statusHoldUntil = 0;
   setStatus("");
 
   try {

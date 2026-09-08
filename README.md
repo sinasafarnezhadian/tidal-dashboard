@@ -197,6 +197,13 @@ deren aktuellen ETag, der Server liest sie also zuerst und schickt den Tag als
 vorhandenen Titel abzulehnen – die Oberfläche meldet dann „Ist schon in
 Younes-Favoriten". Ein Entfernen gibt es bewusst nicht.
 
+Damit ein Kind die Playlist nicht durch schnelles Tippen vollschreibt, greift
+ein Guard: Der Server nimmt höchstens alle 3 Sekunden einen Titel an und
+antwortet sonst mit `429` und „Zu schnell – bitte kurz warten." Der Knopf
+sperrt sich für dieselbe Zeit, sodass es gar nicht erst zum Hämmern kommt. Die
+Rückmeldung bleibt diese 3 Sekunden stehen und wird nicht von einem später
+eintreffenden Aufräumen des Players überschrieben.
+
 ### Ältere iPads
 
 Das Frontend läuft bewusst auch auf altem Safari (iOS 12). Deshalb: kein
@@ -212,4 +219,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 03:00 UTC
+Letzte Änderung: 2026-09-08 22:57 UTC
