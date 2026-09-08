@@ -35,9 +35,19 @@ function setStatus(text) {
   statusLine.textContent = text;
 }
 
+const PLAYED_COLOR = getComputedStyle(document.documentElement)
+  .getPropertyValue("--accent-green")
+  .trim();
+
+// Set the gradient from here rather than via a CSS variable inside calc(),
+// which older WebKit (iOS 12) does not evaluate reliably.
 function paintProgress() {
   const max = Number(seek.max) || 0;
-  seek.style.setProperty("--played", max ? (Number(seek.value) / max) * 100 : 0);
+  const pct = max ? (Number(seek.value) / max) * 100 : 0;
+  seek.style.backgroundImage =
+    "linear-gradient(to right, " +
+    PLAYED_COLOR + " 0%, " + PLAYED_COLOR + " " + pct + "%, " +
+    "transparent " + pct + "%, transparent 100%)";
 }
 
 function formatTime(seconds) {

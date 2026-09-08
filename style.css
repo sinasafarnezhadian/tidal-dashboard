@@ -22,29 +22,23 @@ html, body {
 }
 
 .topbar {
+  position: -webkit-sticky; /* Safari 12 kennt nur die präfixierte Form */
   position: sticky;
   top: 0;
   z-index: 10;
   background: var(--bg);
   border-bottom: 2px solid var(--accent-green);
-  padding: 16px 20px 12px;
+  padding: 10px 16px;
   box-shadow: 0 2px 10px rgba(107, 79, 59, 0.08);
 }
 
-.topbar h1 {
-  margin: 0;
-  font-size: 1.6rem;
-  color: var(--earth-dark);
-  text-align: center;
-}
-
 .player {
-  max-width: 640px;
-  margin: 12px auto 0;
+  max-width: 520px;
+  margin: 0 auto;
   background: var(--card-bg);
   border: 2px solid var(--accent-green);
-  border-radius: 20px;
-  padding: 14px 18px;
+  border-radius: 18px;
+  padding: 10px 14px;
   box-shadow: var(--shadow);
 }
 
@@ -68,7 +62,6 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
   min-height: 160px;
@@ -79,6 +72,10 @@ html, body {
 .card:active {
   transform: scale(0.96);
   background: var(--card-bg-hover);
+}
+
+.card > * + * {
+  margin-top: 10px;
 }
 
 .card .emoji {
@@ -106,36 +103,44 @@ html, body {
 
 .now-playing {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .np-title {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--earth-dark);
 }
 
 .np-artist {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--earth-brown);
-  margin-top: 2px;
-  min-height: 1.2em;
+  margin-left: 6px;
 }
 
-.player-controls {
+.player-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 18px;
+}
+
+/* Flexbox-"gap" gibt es erst ab Safari 14.1, daher Abstände über margin. */
+.player-row > * + * {
+  margin-left: 10px;
 }
 
 .ctrl-btn {
+  flex: none;
   background: var(--card-bg-hover);
   border: 2px solid var(--accent-green);
   border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  font-size: 1.2rem;
+  width: 40px;
+  height: 40px;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
   color: var(--earth-dark);
   cursor: pointer;
 }
@@ -146,49 +151,39 @@ html, body {
 }
 
 .ctrl-btn.play-btn {
-  width: 64px;
-  height: 64px;
-  font-size: 1.6rem;
+  width: 48px;
+  height: 48px;
+  font-size: 1.25rem;
   background: var(--accent-green);
   color: white;
   border-color: var(--accent-green-dark);
 }
 
-.progress-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-}
-
 .time {
-  font-size: 0.85rem;
+  flex: none;
+  font-size: 0.8rem;
   color: var(--earth-brown);
-  font-variant-numeric: tabular-nums;
-  min-width: 3.2em;
+  min-width: 2.6em;
   text-align: center;
 }
 
 .seek {
   flex: 1;
+  min-width: 0;
   -webkit-appearance: none;
   appearance: none;
   height: 10px;
   border-radius: 5px;
   border: 1px solid var(--accent-green);
   outline: none;
-  background: linear-gradient(
-    to right,
-    var(--accent-green) 0 calc(var(--played, 0) * 1%),
-    var(--card-bg-hover) calc(var(--played, 0) * 1%) 100%
-  );
+  background: var(--card-bg-hover);
 }
 
 .seek::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--accent-green-dark);
   border: 2px solid var(--card-bg);
@@ -196,8 +191,8 @@ html, body {
 }
 
 .seek::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--accent-green-dark);
   border: 2px solid var(--card-bg);
@@ -205,9 +200,9 @@ html, body {
 }
 
 .player-status {
-  margin-top: 8px;
+  margin-top: 6px;
   text-align: center;
   color: var(--earth-brown);
-  font-size: 0.85rem;
-  min-height: 1.1em;
+  font-size: 0.8rem;
+  min-height: 0;
 }

@@ -28,8 +28,9 @@ Internet (kein Vercel/GitHub Pages mehr nötig).
 ## Architektur
 
 - `index.html` / `style.css` / `app.js` – Frontend mit den Kacheln und dem
-  Player im Kopfbereich: Titel, Interpret, Play/Pause, Vor/Zurück sowie
-  Fortschrittsbalken mit Zeitangaben (Beige/Hellgrün/Erdtöne).
+  Player im Kopfbereich: Titel und Interpret, darunter in einer Zeile
+  Vor/Play/Zurück, Fortschrittsbalken und Zeitangaben (Beige/Hellgrün/
+  Erdtöne).
 - `server/app.py` – kleiner Python-Server (Flask), der sich einmalig bei
   Tidal anmeldet, Playlist/Album/Track-Infos abruft und die Audiodateien an
   das Frontend liefert. Liefert auch gleich die statischen Dateien aus.
@@ -153,6 +154,14 @@ Ein Tipp auf eine Kachel startet die Wiedergabe sofort; der Player bleibt beim
 Scrollen oben stehen. Im Fortschrittsbalken lässt sich im Titel springen, und
 am Ende eines Titels läuft die Playlist automatisch weiter.
 
+### Ältere iPads
+
+Das Frontend läuft bewusst auch auf altem Safari (iOS 12). Deshalb: kein
+`gap` in Flexbox (gibt es erst ab Safari 14.1, Abstände laufen über
+`margin`), `position: -webkit-sticky` zusätzlich zur unpräfixierten Form,
+kein `var()` innerhalb von `calc()`, und keine neuere JS-Syntax wie `?.`.
+Wer hier etwas ändert, sollte das im Blick behalten.
+
 ## Auf dem iPad einrichten
 
 1. Im Safari-Browser die lokale Adresse (siehe oben) öffnen.
@@ -160,4 +169,4 @@ am Ende eines Titels läuft die Playlist automatisch weiter.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 22:05 UTC
+Letzte Änderung: 2026-09-08 22:25 UTC

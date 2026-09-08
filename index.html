@@ -11,21 +11,16 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>🎶 Musik-Dashboard</h1>
-
     <div id="player" class="player" hidden>
       <div class="now-playing">
-        <div id="np-title" class="np-title"></div>
-        <div id="np-artist" class="np-artist"></div>
+        <span id="np-title" class="np-title"></span>
+        <span id="np-artist" class="np-artist"></span>
       </div>
 
-      <div class="player-controls">
+      <div class="player-row">
         <button id="prev-btn" class="ctrl-btn" aria-label="Vorheriger Titel">⏮</button>
         <button id="play-pause-btn" class="ctrl-btn play-btn" aria-label="Play/Pause">▶</button>
         <button id="next-btn" class="ctrl-btn" aria-label="Nächster Titel">⏭</button>
-      </div>
-
-      <div class="progress-row">
         <span id="time-current" class="time">0:00</span>
         <input id="seek" class="seek" type="range" min="0" max="0" value="0" step="1"
                aria-label="Position im Titel">
