@@ -35,6 +35,9 @@ login_state = {"status": "logged_out"}
 # Das Herz verändert eine echte Playlist - ein hämmerndes Kind soll nicht
 # im Sekundentakt schreiben. Der Browser sperrt den Button ohnehin, aber
 # verlassen wird sich darauf nicht.
+# Wie viele Zufalls-Playlists der Empfehlungsbereich hoechstens zeigt.
+DISCOVER_LIMIT = 4
+
 FAVORITE_COOLDOWN = 3.0
 favorite_lock = threading.Lock()
 last_favorite_add = 0.0
@@ -236,8 +239,12 @@ def discover():
 
         found, ids = [], set()
         for name in random.sample(artists, min(3, len(artists))):
+            # Nur der playlists-Zweig der Suche, also niemals einzelne Titel.
             for playlist in api.get_search(name).playlists.items:
                 if playlist.uuid in configured or playlist.uuid in ids:
+                    continue
+                # Eine leere Playlist wuerde beim Antippen nur ins Leere laufen.
+                if not playlist.numberOfTracks:
                     continue
                 ids.add(playlist.uuid)
                 found.append({"type": "playlist", "tidalId": playlist.uuid,
@@ -246,7 +253,7 @@ def discover():
         return jsonify({"error": str(exc)}), 502
 
     random.shuffle(found)
-    return jsonify(found[:6])
+    return jsonify(found[:DISCOVER_LIMIT])
 
 
 @app.route("/api/favorites/add/<track_id>", methods=["POST"])

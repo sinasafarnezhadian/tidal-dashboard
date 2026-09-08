@@ -327,7 +327,9 @@ function renderFavoriteRow(playlistId, track, index) {
       : '<span class="track-play" aria-hidden="true">▶</span>') +
     '<span class="track-text"><span class="track-title">' + track.title + "</span>" +
     (track.artist ? '<span class="track-artist">' + track.artist + "</span>" : "") +
-    "</span>";
+    "</span>" +
+    // Vorerst nur das Symbol; spaeter wird daraus das "aus Favoriten entfernen".
+    '<span class="track-fav" aria-hidden="true">\u2665</span>';
   row.addEventListener("click", function () {
     unlockAudio();
     openItem({ type: "playlist", tidalId: playlistId, title: track.title }, index);

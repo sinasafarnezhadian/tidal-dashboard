@@ -141,7 +141,9 @@ Alles wird in `config.json` gepflegt:
 Lieder gibt es dort nicht mehr – die stehen in der `favorites`-Playlist.
 
 `favorites` ist die UUID einer Playlist, deren Titel direkt unter den Kacheln
-als eigene Liste mit Cover erscheinen und die das Herz im Player befüllt – gedacht für die Lieblingslieder des
+als eigene Liste mit Cover erscheinen – rechts in jeder Zeile steht ein Herz
+als Kennzeichen für den Favoritenbereich (vorerst nur das Symbol, ohne
+Funktion; später soll darüber ein Titel wieder aus der Playlist fliegen) und die das Herz im Player befüllt – gedacht für die Lieblingslieder des
 Kindes. Ein Tipp darauf spielt ab dieser Stelle die ganze Playlist weiter. Fehlt der
 Eintrag, entfällt der Bereich.
 
@@ -150,8 +152,11 @@ Tidal hat **keinen** Endpunkt für „ähnliche Playlists"; es gibt nur ähnlich
 Künstler, Radios und ähnliche Alben, die alle keine Playlists liefern. Der
 Bereich nimmt daher die Künstler aus den eingetragenen Playlists, wählt davon
 zufällig drei aus und sucht nach ihnen – die Suche ist die einzige Stelle der
-API, die Playlists zurückgibt. Bereits eingetragene Playlists werden
-aussortiert, die Auswahl wechselt bei jedem Seitenaufruf.
+API, die Playlists zurückgibt. Ausgewertet wird nur der `playlists`-Zweig der
+Suche, es können dort also keine einzelnen Lieder auftauchen. Aussortiert
+werden bereits eingetragene Playlists und solche ohne Titel, die beim Antippen
+nur ins Leere liefen. Angezeigt werden höchstens vier (`DISCOVER_LIMIT` in
+`server/app.py`), die Auswahl wechselt bei jedem Seitenaufruf.
 
 So findet man die IDs in der Tidal-App:
 - **Playlist**: Playlist öffnen → Teilen → Link kopieren, z. B.
@@ -219,4 +224,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 22:57 UTC
+Letzte Änderung: 2026-09-08 23:08 UTC

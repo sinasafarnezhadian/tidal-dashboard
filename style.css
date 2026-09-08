@@ -221,6 +221,18 @@ html, body {
 .track-text {
   min-width: 0;
   overflow: hidden;
+  /* Schiebt das Herz an die rechte Kante der Kachel. */
+  flex: 1;
+}
+
+/* Noch ohne Funktion - reines Kennzeichen fuer den Favoritenbereich. */
+.track-row .track-fav {
+  flex: none;
+  margin-left: 12px;
+  color: #b4574f;
+  font-size: 1.15rem;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .track-title {
