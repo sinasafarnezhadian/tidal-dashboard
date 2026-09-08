@@ -20,6 +20,9 @@ let queueIndex = 0;
 let trackLoaded = false;
 let failedInARow = 0;
 let scrubbing = false;
+// Beim Antippen einer Zeile darf die Liste nicht springen - sonst rutscht der
+// Titel unter dem Finger weg. Beim automatischen Weiterlaufen dagegen schon.
+let keepQueueScroll = false;
 
 // iOS only starts audio that began inside a real tap. Tapping a card has to
 // fetch the track list first, and that await would spend the tap - so the
@@ -79,6 +82,7 @@ function renderQueueList() {
         togglePlayPause();
         return;
       }
+      keepQueueScroll = true;
       queueIndex = index;
       playCurrentTrack();
     });
@@ -91,6 +95,11 @@ function highlightCurrentInQueue() {
   for (let i = 0; i < rows.length; i++) {
     rows[i].className = i === queueIndex ? "queue-item active" : "queue-item";
   }
+  if (keepQueueScroll) {
+    keepQueueScroll = false;
+    return;
+  }
+
   const active = rows[queueIndex];
   // scrollTop instead of scrollIntoView(options), which older Safari ignores.
   if (active && queueList.scrollHeight > queueList.clientHeight) {
