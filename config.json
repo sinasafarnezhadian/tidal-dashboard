@@ -5,6 +5,12 @@
   "items": [
     {
       "type": "playlist",
+      "title": "Playlist Rock",
+      "tidalId": "be85144c-474f-4fbc-b924-0fc314b3dc1c",
+      "emoji": "🎧"
+    },
+    {
+      "type": "playlist",
       "title": "Playlist 1",
       "tidalId": "dd4dab5e-cabc-4c75-b198-1bcd234add33",
       "emoji": "🎧"
