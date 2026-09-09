@@ -6,4 +6,11 @@ services:
     ports:
       - "8080:8080"
     volumes:
+      # Der Login-Token, die gepflegte config.json und der PIN.
       - ./data:/app/data
+      # Der Quellcode aus dem Klon statt aus dem Image: nach einem "git pull"
+      # genügt für Frontend-Änderungen ein Neuladen der Seite und für
+      # Server-Änderungen ein "docker compose restart" - ohne Neubau.
+      # Schreibgeschützt, damit der Container nichts in den Klon schreibt;
+      # alles Veränderliche liegt ohnehin in ./data.
+      - .:/app:ro

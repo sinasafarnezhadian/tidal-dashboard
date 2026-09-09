@@ -62,21 +62,21 @@ Das Repo enthält ein `Dockerfile` und `docker-compose.yml`.
 2. Stack starten (Deploy). Dockge/Docker Compose baut das Image aus dem
    `Dockerfile` und startet den Container.
 
-**A2 – Direkt in Dockge einfügen (kein Klonen nötig):** neuen Stack anlegen
-und diese `compose.yaml` einfügen – Docker holt sich den Build-Context
-selbst per Git:
+**A2 – Klon im Unterordner `src`:** Wenn der Stack-Ordner und der Klon
+getrennt sein sollen, das Repo nach `src/` klonen und diese `compose.yaml` in
+den Stack legen:
 
 ```yaml
 services:
   tidal-dashboard:
-    build:
-      context: https://github.com/sinasafarnezhadian/tidal-dashboard.git#main
+    build: ./src
     container_name: tidal-dashboard
     restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
       - ./data:/app/data
+      - ./src:/app:ro
 ```
 
 Bei beiden Varianten gilt: Der Login-Token landet dank Volume-Mount in
@@ -105,6 +105,23 @@ http://<lokale-IP-des-Docker-Hosts>:8080
 
 Port lässt sich in `docker-compose.yml` unter `ports` anpassen, falls 8080
 schon belegt ist.
+
+#### Aktualisieren ohne Neubau
+
+Der Quellcode kommt im Betrieb aus dem gemounteten Klon, nicht aus dem Image
+(`- .:/app:ro` bzw. `- ./src:/app:ro`). Deshalb reicht meistens ein `git pull`:
+
+| Was sich geändert hat | Was zu tun ist |
+| --- | --- |
+| Playlists, Favoriten, Vorschläge, Explizit-Filter | nichts – das macht das Zahnrad |
+| `index.html`, `style.css`, `app.js` | `git pull`, Seite im Browser neu laden |
+| `server/app.py` | `git pull && docker compose restart tidal-dashboard` |
+| `server/requirements.txt` oder `Dockerfile` | `git pull && docker compose up -d --build` |
+
+Der Mount ist schreibgeschützt: Alles Veränderliche – Login-Token, gepflegte
+`config.json`, PIN, API-Cache – liegt in `./data`, der Container hat im Klon
+also nichts verloren. So legt er dort auch keine root-eigenen Dateien ab, die
+das nächste `git pull` blockieren würden.
 
 ### Variante B: Direkt mit Python (ohne Docker)
 
@@ -261,4 +278,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 06:11 UTC
+Letzte Änderung: 2026-09-09 11:00 UTC

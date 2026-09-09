@@ -9,6 +9,8 @@ COPY . .
 
 ENV DATA_DIR=/app/data
 ENV PYTHONUNBUFFERED=1
+# Der Quellcode wird im Betrieb schreibgeschützt gemountet.
+ENV PYTHONDONTWRITEBYTECODE=1
 EXPOSE 8080
 
 CMD ["python", "server/app.py"]
