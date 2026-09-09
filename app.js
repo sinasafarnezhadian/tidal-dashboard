@@ -377,7 +377,8 @@ function loadDiscover() {
     .catch(function () {});
 }
 
-fetch("config.json")
+// Gepflegt wird die Kopie im DATA_DIR, nicht die statische Datei im Image.
+fetch("/api/config")
   .then((res) => res.json())
   .then((data) => {
     // Kein bloßes forEach(renderTile): forEach reicht den Index als zweites
@@ -387,5 +388,130 @@ fetch("config.json")
     loadDiscover();
   })
   .catch((err) => {
-    collections.innerHTML = `<p>Konnte config.json nicht laden: ${err}</p>`;
+    collections.innerHTML = `<p>Konnte Einstellungen nicht laden: ${err}</p>`;
   });
+
+
+/* --- Einstellungen: Zahnrad, PIN, Formular ------------------------------ */
+
+const overlay = document.getElementById("settings-overlay");
+const pinStep = document.getElementById("pin-step");
+const pinHint = document.getElementById("pin-hint");
+const pinInput = document.getElementById("pin-input");
+const pinRepeatField = document.getElementById("pin-repeat-field");
+const pinRepeat = document.getElementById("pin-repeat");
+const settingsStep = document.getElementById("settings-step");
+const sheetStatus = document.getElementById("sheet-status");
+const sheetOk = document.getElementById("sheet-ok");
+
+// Der PIN bleibt nur offen, solange das Overlay offen ist; jede Anfrage
+// schickt ihn mit, damit es serverseitig keine Sitzung braucht.
+let sheetPin = "";
+let pinIsSet = false;
+
+function sheetSay(text) {
+  sheetStatus.textContent = text;
+}
+
+function postJson(url, body) {
+  return fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  }).then(function (res) {
+    return res.json().then(function (data) {
+      if (!res.ok) throw new Error(data.error || "Fehler " + res.status);
+      return data;
+    });
+  });
+}
+
+function closeSheet() {
+  overlay.hidden = true;
+  sheetPin = "";
+  pinInput.value = "";
+  pinRepeat.value = "";
+  sheetSay("");
+}
+
+function showSettings(settings) {
+  pinStep.hidden = true;
+  settingsStep.hidden = false;
+  sheetOk.textContent = "Speichern";
+  document.getElementById("set-discover").checked = !!settings.discover;
+  document.getElementById("set-favorites").value = settings.favorites || "";
+  document.getElementById("set-playlists").value = settings.playlists || "";
+  document.getElementById("set-explicit-off").checked = !!settings.allowExplicit;
+  document.getElementById("set-explicit-on").checked = !settings.allowExplicit;
+}
+
+document.getElementById("settings-btn").addEventListener("click", function () {
+  overlay.hidden = false;
+  pinStep.hidden = false;
+  settingsStep.hidden = true;
+  sheetSay("");
+  fetch("/api/settings/state")
+    .then(function (res) { return res.json(); })
+    .then(function (state) {
+      pinIsSet = !!state.pinSet;
+      pinRepeatField.hidden = pinIsSet;
+      pinHint.textContent = pinIsSet
+        ? "Bitte den vierstelligen PIN eingeben."
+        : "Noch kein PIN vergeben. Lege jetzt einen vierstelligen PIN fest – er lässt sich später nur durch Löschen der Datei data/settings_pin.json zurücksetzen.";
+      sheetOk.textContent = pinIsSet ? "Weiter" : "PIN festlegen";
+      pinInput.focus();
+    })
+    .catch(function (err) { sheetSay(String(err.message || err)); });
+});
+
+document.getElementById("sheet-cancel").addEventListener("click", closeSheet);
+
+overlay.addEventListener("click", function (event) {
+  // Nur ein Tipp neben das Blatt schließt, nicht einer ins Formular.
+  if (event.target === overlay) closeSheet();
+});
+
+sheetOk.addEventListener("click", function () {
+  sheetOk.disabled = true;
+  const done = function () { sheetOk.disabled = false; };
+
+  if (!settingsStep.hidden) {
+    postJson("/api/settings/save", {
+      pin: sheetPin,
+      settings: {
+        discover: document.getElementById("set-discover").checked,
+        favorites: document.getElementById("set-favorites").value.trim(),
+        playlists: document.getElementById("set-playlists").value,
+        allowExplicit: document.getElementById("set-explicit-off").checked,
+      },
+    })
+      .then(function () {
+        // Neu laden, damit Kacheln, Favoriten und Vorschläge zusammenpassen.
+        window.location.reload();
+      })
+      .catch(function (err) { sheetSay(String(err.message || err)); })
+      .then(done);
+    return;
+  }
+
+  const pin = pinInput.value;
+  if (!/^\d{4}$/.test(pin)) {
+    sheetSay("Der PIN besteht aus vier Ziffern.");
+    done();
+    return;
+  }
+  if (!pinIsSet && pin !== pinRepeat.value) {
+    sheetSay("Die beiden PINs stimmen nicht überein.");
+    done();
+    return;
+  }
+
+  postJson(pinIsSet ? "/api/settings/unlock" : "/api/settings/pin", { pin: pin })
+    .then(function (data) {
+      sheetPin = pin;
+      sheetSay("");
+      showSettings(data.settings);
+    })
+    .catch(function (err) { sheetSay(String(err.message || err)); })
+    .then(done);
+});

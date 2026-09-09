@@ -45,6 +45,69 @@
     <div id="discover" class="grid"></div>
   </main>
 
+  <footer class="footer">
+    <button id="settings-btn" class="gear-btn" aria-label="Einstellungen">⚙</button>
+  </footer>
+
+  <!-- Kein <dialog>: das kennt Safari 12 noch nicht. -->
+  <div id="settings-overlay" class="overlay" hidden>
+    <div class="sheet" role="dialog" aria-labelledby="sheet-title">
+      <h2 id="sheet-title" class="sheet-title">Einstellungen</h2>
+
+      <div id="pin-step">
+        <p id="pin-hint" class="sheet-hint"></p>
+        <label class="field">
+          <span class="field-label">PIN</span>
+          <input id="pin-input" class="input pin-input" type="password" inputmode="numeric"
+                 pattern="[0-9]*" maxlength="4" autocomplete="off">
+        </label>
+        <label id="pin-repeat-field" class="field" hidden>
+          <span class="field-label">PIN wiederholen</span>
+          <input id="pin-repeat" class="input pin-input" type="password" inputmode="numeric"
+                 pattern="[0-9]*" maxlength="4" autocomplete="off">
+        </label>
+      </div>
+
+      <div id="settings-step" hidden>
+        <label class="field field-check">
+          <input id="set-discover" type="checkbox">
+          <span class="field-label">Vorschläge zeigen (Discovery)</span>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Favoriten-Liste</span>
+          <input id="set-favorites" class="input" type="text" autocomplete="off"
+                 placeholder="Playlist-ID oder Tidal-Link">
+        </label>
+
+        <label class="field">
+          <span class="field-label">Sichtbare Playlisten – eine pro Zeile</span>
+          <textarea id="set-playlists" class="input textarea" rows="6"
+                    placeholder="Playlist-ID, Album-Nummer oder Tidal-Link"></textarea>
+        </label>
+
+        <fieldset class="field fieldset">
+          <legend class="field-label">Explizit-Filter</legend>
+          <label class="radio-row">
+            <input type="radio" name="explicit" id="set-explicit-on" value="on">
+            <span>Filter aktiv – anstößige Titel werden übersprungen</span>
+          </label>
+          <label class="radio-row">
+            <input type="radio" name="explicit" id="set-explicit-off" value="off">
+            <span>Filter deaktiviert</span>
+          </label>
+        </fieldset>
+      </div>
+
+      <p id="sheet-status" class="sheet-status"></p>
+
+      <div class="sheet-buttons">
+        <button id="sheet-cancel" class="sheet-btn">Abbrechen</button>
+        <button id="sheet-ok" class="sheet-btn sheet-btn-main">Weiter</button>
+      </div>
+    </div>
+  </div>
+
   <audio id="audio" playsinline preload="none"></audio>
 
   <script src="app.js"></script>

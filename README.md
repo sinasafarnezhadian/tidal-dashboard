@@ -122,13 +122,52 @@ Login-Ablauf und Seiten-Adresse wie oben beschrieben; der Token landet dann
 in `server/tidal_session.json`. Für Autostart nach Neustart z. B. als
 systemd-Service einrichten (optional).
 
-## Playlists/Lieder pflegen
+## Einstellungen im Dashboard
 
-Alles wird in `config.json` gepflegt:
+Unten links auf jeder Seite sitzt ein Zahnrad (bewusst nicht mitscrollend). Es
+öffnet ein Overlay, das zuerst nach einem **vierstelligen PIN** fragt. Beim
+ersten Mal wird der PIN dort festgelegt – zur Sicherheit mit Wiederholung,
+denn zurücksetzen lässt er sich nur durch Löschen von
+`./data/settings_pin.json` auf dem Host.
+
+Danach erscheinen die Einstellungen:
+
+- **Vorschläge zeigen (Discovery)** – Häkchen, ab Werk aus.
+- **Favoriten-Liste** – die Playlist, die unter den Kacheln erscheint und die
+  das Herz befüllt. ID oder Tidal-Link, beides wird erkannt.
+- **Sichtbare Playlisten** – eine pro Zeile, als Playlist-UUID, Album-Nummer
+  oder Tidal-Link. Eine nicht erkennbare Zeile wird gemeldet und **nichts**
+  gespeichert, statt die Hälfte zu übernehmen.
+- **Explizit-Filter** – zwei Auswahlknöpfe. Steht die Auswahl auf
+  „deaktiviert", spielt das Dashboard auch Titel, die Tidal als `explicit`
+  markiert. Nicht streambare und Dolby-Atmos-Titel bleiben unabhängig davon
+  außen vor, die kann der Browser ohnehin nicht abspielen.
+
+„Speichern" schreibt und lädt die Seite neu, „Abbrechen" verwirft.
+
+Der PIN wird nicht im Klartext abgelegt, sondern als PBKDF2-Hash mit
+zufälligem Salt in `./data/settings_pin.json` – bewusst **nicht** in der
+Config, denn die wird an den Browser ausgeliefert. Gegen simples Durchprobieren
+aller 10 000 Kombinationen gilt: nach fünf Fehlversuchen eine Minute Pause,
+und zwischen zwei Fehlversuchen mindestens eine Sekunde. Ein richtiger PIN
+wird nie gebremst. Das ist eine Kindersicherung im Heimnetz, kein Türsteher –
+wer im selben WLAN ist, kommt an die Musik ohnehin heran.
+
+## Wo die Einstellungen liegen
+
+Gepflegt wird `./data/config.json` im Stack-Ordner auf dem Host, also im
+gemounteten Volume. Die `config.json` **im Repo ist nur die Vorlage**: Sie
+steckt im Docker-Image und wäre nach jedem `--build` wieder im Ausgangszustand.
+Beim ersten Start ohne `./data/config.json` wird die Vorlage einmalig dorthin
+kopiert; ab da ändert nur noch das Zahnrad (oder ein Editor auf dem Host) etwas
+daran.
+
+Von Hand lässt sich dieselbe Datei weiterhin bearbeiten:
 
 ```json
 {
-  "discover": true,
+  "discover": false,
+  "allowExplicit": false,
   "favorites": "PLAYLIST-UUID",
   "items": [
     { "type": "playlist", "title": "Gute-Laune-Playlist", "tidalId": "PLAYLIST-UUID", "emoji": "🎧" },
@@ -147,7 +186,8 @@ Funktion; später soll darüber ein Titel wieder aus der Playlist fliegen) und d
 Kindes. Ein Tipp darauf spielt ab dieser Stelle die ganze Playlist weiter. Fehlt der
 Eintrag, entfällt der Bereich.
 
-`discover` schaltet den Empfehlungsbereich unter den Liedern ein oder aus.
+`discover` schaltet den Empfehlungsbereich unter den Liedern ein oder aus (ab
+Werk aus).
 Tidal hat **keinen** Endpunkt für „ähnliche Playlists"; es gibt nur ähnliche
 Künstler, Radios und ähnliche Alben, die alle keine Playlists liefern. Der
 Bereich nimmt daher die Künstler aus den eingetragenen Playlists, wählt davon
@@ -168,13 +208,10 @@ Anders als beim früheren Embed-Widget müssen Playlists **nicht** öffentlich
 gestellt werden, da der Server mit dem eigenen Tidal-Login zugreift.
 
 **Jugendschutz:** Aus Playlists und Alben werden Titel übersprungen, die Tidal
-als `explicit` markiert (ebenso nicht streambare und Dolby-Atmos-Titel). Ein
-Lied, das in der `config.json` bewusst einzeln eingetragen ist, wird dagegen
-gespielt – das ist eine ausdrückliche Entscheidung der Eltern. Wer den Filter
-abschalten will, entfernt die `explicit`-Prüfung in `is_playable()`
-(`server/app.py`).
+als `explicit` markiert (ebenso nicht streambare und Dolby-Atmos-Titel).
+Abschalten lässt sich das über das Zahnrad oder mit `"allowExplicit": true`.
 
-Nach dem Ändern von `config.json` reicht ein Neuladen der Seite im
+Nach dem Ändern von `./data/config.json` reicht ein Neuladen der Seite im
 iPad-Browser – kein Neustart des Servers nötig.
 
 Die Kacheln zeigen Cover und Name aus Tidal; `emoji` und `title` aus der
@@ -224,4 +261,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-08 23:08 UTC
+Letzte Änderung: 2026-09-09 06:11 UTC

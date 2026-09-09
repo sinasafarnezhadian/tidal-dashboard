@@ -1,4 +1,6 @@
 import base64
+import hashlib
+import hmac
 import json
 import os
 import pathlib
@@ -41,6 +43,89 @@ DISCOVER_LIMIT = 4
 FAVORITE_COOLDOWN = 3.0
 favorite_lock = threading.Lock()
 last_favorite_add = 0.0
+
+# Die Datei im Repo ist nur die Vorlage: sie steckt im Image und waere nach
+# jedem Rebuild wieder da. Gepflegt wird die Kopie im gemounteten DATA_DIR.
+CONFIG_SEED = STATIC_DIR / "config.json"
+CONFIG_FILE = DATA_DIR / "config.json"
+
+# Der PIN gehoert nicht in die Config: die wird statisch ausgeliefert und ist
+# damit im Heimnetz fuer jeden lesbar.
+PIN_FILE = DATA_DIR / "settings_pin.json"
+PIN_ITERATIONS = 200_000
+PIN_MIN_INTERVAL = 1.0   # Sekunden zwischen zwei Versuchen
+PIN_MAX_FAILURES = 5     # danach eine Zwangspause
+PIN_LOCKOUT = 60.0
+pin_lock = threading.Lock()
+pin_state = {"last_fail": 0.0, "failures": 0, "locked_until": 0.0}
+
+
+def load_config() -> dict:
+    """Effective settings, seeded from the repo copy on first start."""
+    if not CONFIG_FILE.exists():
+        seed = json.loads(CONFIG_SEED.read_text()) if CONFIG_SEED.exists() else {}
+        CONFIG_FILE.write_text(json.dumps(seed, indent=2, ensure_ascii=False))
+    return json.loads(CONFIG_FILE.read_text())
+
+
+def hash_pin(pin: str, salt: bytes) -> str:
+    return hashlib.pbkdf2_hmac("sha256", pin.encode(), salt, PIN_ITERATIONS).hex()
+
+
+def pin_is_set() -> bool:
+    return PIN_FILE.exists()
+
+
+def check_pin(pin) -> tuple:
+    """(ok, error response). Guards against simply trying all 10000 PINs."""
+    if not isinstance(pin, str) or not re.fullmatch(r"\d{4}", pin):
+        return False, (jsonify({"error": "PIN muss vierstellig sein."}), 400)
+    if not pin_is_set():
+        return False, (jsonify({"error": "Es ist noch kein PIN vergeben."}), 409)
+
+    with pin_lock:
+        now = time.monotonic()
+        if now < pin_state["locked_until"]:
+            return False, (jsonify({"error": "Zu viele Fehlversuche.",
+                                    "retryIn": round(pin_state["locked_until"] - now)}), 429)
+
+    stored = json.loads(PIN_FILE.read_text())
+    ok = hmac.compare_digest(hash_pin(pin, bytes.fromhex(stored["salt"])), stored["hash"])
+
+    with pin_lock:
+        if ok:
+            # Der richtige PIN wird nie gebremst: sonst liefe schon das
+            # Speichern direkt nach dem Entsperren in die Sperre.
+            pin_state["failures"] = 0
+            return True, None
+        now = time.monotonic()
+        if now - pin_state["last_fail"] < PIN_MIN_INTERVAL:
+            return False, (jsonify({"error": "Zu schnell - bitte kurz warten."}), 429)
+        pin_state["last_fail"] = now
+        pin_state["failures"] += 1
+        if pin_state["failures"] >= PIN_MAX_FAILURES:
+            pin_state["failures"] = 0
+            pin_state["locked_until"] = now + PIN_LOCKOUT
+    return False, (jsonify({"error": "Falscher PIN."}), 401)
+
+
+ID_FROM_URL = re.compile(r"(?:playlist|album)/([0-9a-fA-F-]+)")
+
+
+def parse_item(line: str) -> dict:
+    """One line of the playlist field: a UUID, an album number or a Tidal link."""
+    text = line.strip()
+    if not text:
+        return {}
+    match = ID_FROM_URL.search(text)
+    if match:
+        text = match.group(1)
+    if re.fullmatch(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", text):
+        return {"type": "playlist", "tidalId": text}
+    if text.isdigit():
+        return {"type": "album", "tidalId": text}
+    raise ValueError(line.strip())
 
 
 def save_tokens(tokens):
@@ -168,14 +253,15 @@ def track_info(track):
     }
 
 
-def is_playable(track):
+def is_playable(track, allow_explicit=False):
     """Skip what the browser could not play anyway: tracks the account may not
     stream (tiddl checks the same flag before downloading) and Dolby Atmos,
     which is delivered as eac3/ac4. Tracks Tidal marks as explicit are left
-    out too - this dashboard is for a child."""
+    out too - this dashboard is for a child - unless that filter was switched
+    off in the settings."""
     if not getattr(track, "allowStreaming", True):
         return False
-    if getattr(track, "explicit", False):
+    if not allow_explicit and getattr(track, "explicit", False):
         return False
     return "DOLBY_ATMOS" not in (getattr(track, "audioModes", None) or [])
 
@@ -187,7 +273,8 @@ def collect_tracks(fetch_page):
         tracks += [entry.item for entry in page.items if entry.type == "track"]
         offset += page.limit
         if offset >= page.totalNumberOfItems:
-            return [t for t in tracks if is_playable(t)]
+            allow_explicit = bool(load_config().get("allowExplicit"))
+            return [t for t in tracks if is_playable(t, allow_explicit)]
 
 
 @app.route("/api/queue/<item_type>/<item_id>")
@@ -221,7 +308,7 @@ def discover():
     if api is None:
         return jsonify({"error": "Nicht bei Tidal eingeloggt."}), 401
 
-    config = json.loads((STATIC_DIR / "config.json").read_text())
+    config = load_config()
     if not config.get("discover"):
         return jsonify([])
 
@@ -269,7 +356,7 @@ def favorites_add(track_id):
     if not track_id.isdigit():
         abort(400)
 
-    playlist_id = json.loads((STATIC_DIR / "config.json").read_text()).get("favorites")
+    playlist_id = load_config().get("favorites")
     if not playlist_id:
         return jsonify({"error": "Keine favorites-Playlist in der config.json."}), 400
 
@@ -441,6 +528,103 @@ def stream(track_id):
         status=upstream.status_code,
         headers={h: upstream.headers[h] for h in passthrough if h in upstream.headers},
     )
+
+
+@app.route("/api/config")
+def get_config():
+    """What the board needs. Replaces the formerly static config.json, which
+    still exists in the image but is only the seed."""
+    config = load_config()
+    return jsonify({
+        "discover": bool(config.get("discover")),
+        "favorites": config.get("favorites", ""),
+        "items": config.get("items", []),
+    })
+
+
+@app.route("/api/settings/state")
+def settings_state():
+    return jsonify({"pinSet": pin_is_set()})
+
+
+def settings_payload(config) -> dict:
+    """The settings as the form shows them."""
+    lines = [item.get("tidalId", "") for item in config.get("items", [])]
+    return {
+        "discover": bool(config.get("discover")),
+        "favorites": config.get("favorites", ""),
+        "playlists": "\n".join(line for line in lines if line),
+        "allowExplicit": bool(config.get("allowExplicit")),
+    }
+
+
+@app.route("/api/settings/pin", methods=["POST"])
+def settings_set_pin():
+    """Only ever once - a set PIN cannot be replaced from the outside."""
+    if pin_is_set():
+        return jsonify({"error": "Es ist bereits ein PIN vergeben."}), 409
+    pin = (request.get_json(silent=True) or {}).get("pin")
+    if not isinstance(pin, str) or not re.fullmatch(r"\d{4}", pin):
+        return jsonify({"error": "PIN muss aus vier Ziffern bestehen."}), 400
+
+    salt = os.urandom(16)
+    PIN_FILE.write_text(json.dumps({"salt": salt.hex(), "hash": hash_pin(pin, salt)}))
+    try:
+        PIN_FILE.chmod(0o600)
+    except OSError:  # noqa: PERF203 - a mount may not allow it, that is fine
+        pass
+    return jsonify({"settings": settings_payload(load_config())})
+
+
+@app.route("/api/settings/unlock", methods=["POST"])
+def settings_unlock():
+    ok, error = check_pin((request.get_json(silent=True) or {}).get("pin"))
+    if not ok:
+        return error
+    return jsonify({"settings": settings_payload(load_config())})
+
+
+@app.route("/api/settings/save", methods=["POST"])
+def settings_save():
+    body = request.get_json(silent=True) or {}
+    ok, error = check_pin(body.get("pin"))
+    if not ok:
+        return error
+
+    incoming = body.get("settings") or {}
+    favorites = ""
+    if incoming.get("favorites"):
+        try:
+            favorites = parse_item(str(incoming["favorites"]))["tidalId"]
+        except (ValueError, KeyError):
+            return jsonify({"error": "Favoriten-Liste: keine gültige Playlist-ID."}), 400
+
+    config = load_config()
+    # Titel und Emoji sind nur Rückfallwerte, sollen aber nicht verloren gehen.
+    known = {item.get("tidalId"): item for item in config.get("items", [])}
+    items = []
+    for line in str(incoming.get("playlists", "")).splitlines():
+        try:
+            parsed = parse_item(line)
+        except ValueError as exc:
+            return jsonify({"error": f"Nicht erkannt: {exc}"}), 400
+        if not parsed:
+            continue
+        old = known.get(parsed["tidalId"], {})
+        if old.get("title"):
+            parsed["title"] = old["title"]
+        if old.get("emoji"):
+            parsed["emoji"] = old["emoji"]
+        items.append(parsed)
+
+    config.update({
+        "discover": bool(incoming.get("discover")),
+        "allowExplicit": bool(incoming.get("allowExplicit")),
+        "favorites": favorites,
+        "items": items,
+    })
+    CONFIG_FILE.write_text(json.dumps(config, indent=2, ensure_ascii=False))
+    return jsonify({"saved": True, "settings": settings_payload(config)})
 
 
 if __name__ == "__main__":

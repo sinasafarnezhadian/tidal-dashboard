@@ -405,3 +405,166 @@ html, body {
   font-size: 0.8rem;
   min-height: 0;
 }
+
+/* --- Fußzeile mit dem Zahnrad (bewusst nicht sticky) --- */
+.footer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 20px 24px;
+}
+
+.gear-btn {
+  display: block;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--accent-green);
+  border-radius: 50%;
+  background: var(--card-bg);
+  color: var(--earth-brown);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gear-btn:active { background: var(--card-bg-hover); }
+
+/* --- Einstellungs-Overlay --- */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: rgba(74, 63, 53, 0.45);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 16px;
+}
+
+.overlay[hidden] { display: none; }
+
+.sheet {
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--card-bg);
+  border: 2px solid var(--accent-green);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.sheet-title {
+  margin: 0 0 14px;
+  font-size: 1.2rem;
+  color: var(--earth-dark);
+}
+
+.sheet-hint {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: var(--earth-brown);
+}
+
+.field {
+  display: block;
+  margin-bottom: 16px;
+}
+
+/* Die display-Regeln oben schlagen sonst das [hidden] des Browsers. */
+.field[hidden],
+#pin-step[hidden],
+#settings-step[hidden] {
+  display: none;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--earth-dark);
+}
+
+.input {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid var(--accent-green);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1rem;
+  /* Unter 16px zoomt iOS beim Fokus in das Feld hinein. */
+}
+
+.textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.pin-input {
+  max-width: 8em;
+  letter-spacing: 0.4em;
+  text-align: center;
+}
+
+.field-check {
+  display: flex;
+  align-items: center;
+}
+
+.field-check .field-label { margin: 0 0 0 10px; }
+
+.fieldset {
+  border: 2px solid var(--accent-green);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.fieldset .field-label { padding: 0 4px; }
+
+.radio-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.radio-row > * + * { margin-left: 10px; }
+
+.sheet-status {
+  min-height: 1.2em;
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: #b4574f;
+}
+
+.sheet-buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sheet-buttons > * + * { margin-left: 10px; }
+
+.sheet-btn {
+  padding: 12px 20px;
+  border: 2px solid var(--accent-green);
+  border-radius: 12px;
+  background: var(--card-bg-hover);
+  color: var(--earth-dark);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.sheet-btn-main {
+  background: var(--accent-green);
+  border-color: var(--accent-green-dark);
+  color: white;
+  font-weight: 600;
+}
+
+.sheet-btn:disabled { opacity: 0.5; }
