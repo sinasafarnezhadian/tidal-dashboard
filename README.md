@@ -269,6 +269,9 @@ Das Frontend läuft bewusst auch auf altem Safari (iOS 12). Deshalb: kein
 `gap` in Flexbox (gibt es erst ab Safari 14.1, Abstände laufen über
 `margin`), `position: -webkit-sticky` zusätzlich zur unpräfixierten Form,
 kein `var()` innerhalb von `calc()`, und keine neuere JS-Syntax wie `?.`.
+Die zweispaltigen Bereiche nutzen `minmax(0, 1fr)` statt `1fr`: mit `1fr` ist
+die Mindestbreite einer Spalte die ihres Inhalts, ein langer Titel drückt sie
+dann breiter als die Nachbarspalte, statt mit „…" zu kürzen.
 Wer hier etwas ändert, sollte das im Blick behalten.
 
 ## Auf dem iPad einrichten
@@ -278,4 +281,4 @@ Wer hier etwas ändert, sollte das im Blick behalten.
    eine App, ganzseitig, ohne Browserleiste.
 
 ---
-Letzte Änderung: 2026-09-09 11:00 UTC
+Letzte Änderung: 2026-09-10 11:16 UTC
